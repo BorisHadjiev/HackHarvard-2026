@@ -13,6 +13,8 @@ export {
   normalizePhone,
   readPhotonConfig,
   sendText,
+  startSpectrumInbox,
+  usesBetaPhotonApi,
   PHOTON_PLATFORMS,
   type PhotonConfig,
   type PhotonMessagingClient,

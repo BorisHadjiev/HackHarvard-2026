@@ -51,7 +51,159 @@ function resourceId(resource: unknown, label: string): string {
   return resource.id;
 }
 
-export function createPhotonClient(config: PhotonConfig): PhotonMessagingClient {
+/** Beta Photon API projects use `pho_prj_` ids. Spectrum Cloud projects do not. */
+export function usesBetaPhotonApi(config: PhotonConfig): boolean {
+  return config.projectId.startsWith("pho_prj_");
+}
+
+function scrubSecret(err: unknown, secret: string): Error {
+  const message = err instanceof Error ? err.message : "unknown error";
+  return new Error(secret ? message.split(secret).join("[redacted]") : message);
+}
+
+type SpectrumTextMessage = {
+  id: string;
+  platform: string;
+  direction: "inbound" | "outbound";
+  content: { type: string; text?: string };
+  sender?: { id: string; address?: string };
+};
+
+type SpectrumSpace = {
+  id: string;
+  send: (content: string) => Promise<{ id: string } | undefined>;
+};
+
+type SpectrumSession = {
+  messages: AsyncIterable<[unknown, SpectrumTextMessage]>;
+  openDm: (handle: string) => Promise<SpectrumSpace>;
+};
+
+const spectrumGlobals = globalThis as unknown as {
+  __ntkSpectrumSessions?: Map<string, Promise<SpectrumSession>>;
+  __ntkSpectrumSpaces?: Map<string, SpectrumSpace>;
+  __ntkSpectrumInbox?: boolean;
+};
+const spectrumSessions = (spectrumGlobals.__ntkSpectrumSessions ??= new Map());
+const spectrumSpaces = (spectrumGlobals.__ntkSpectrumSpaces ??= new Map());
+
+async function spectrumSession(config: PhotonConfig): Promise<SpectrumSession> {
+  const cached = spectrumSessions.get(config.projectId);
+  if (cached) return cached;
+  const pending = (async () => {
+    const { Spectrum } = await import("@spectrum-ts/core");
+    const { imessage } = await import("@spectrum-ts/imessage");
+    const app = await Spectrum({
+      projectId: config.projectId,
+      projectSecret: config.apiKey,
+      providers: [imessage.config()],
+      options: { logLevel: "info" },
+    });
+    const im = imessage(app);
+    return {
+      messages: app.messages as AsyncIterable<[unknown, SpectrumTextMessage]>,
+      async openDm(handle: string) {
+        const space = await im.space.create(handle);
+        return space as SpectrumSpace;
+      },
+    };
+  })();
+  spectrumSessions.set(config.projectId, pending);
+  try {
+    return await pending;
+  } catch (err) {
+    spectrumSessions.delete(config.projectId);
+    throw scrubSecret(err, config.apiKey);
+  }
+}
+
+function tenantHandle(participantIds: string[]): string {
+  const handle = participantIds.find((id) => id.startsWith("+"));
+  if (!handle) throw new Error("Spectrum iMessage send needs the tenant phone");
+  return handle;
+}
+
+function createSpectrumClient(config: PhotonConfig): PhotonMessagingClient {
+  if (config.platform !== "imessage") {
+    throw new Error("This Photon project is Spectrum iMessage; set PHOTON_PLATFORM=imessage");
+  }
+  return {
+    async createOrGetUser(handle) {
+      if (spectrumSpaces.has(handle)) return { id: handle };
+      try {
+        const session = await spectrumSession(config);
+        const space = await session.openDm(handle);
+        spectrumSpaces.set(handle, space);
+        spectrumSpaces.set(space.id, space);
+        return { id: handle };
+      } catch (err) {
+        throw scrubSecret(err, config.apiKey);
+      }
+    },
+    async createOrGetSpace(participantIds, platform) {
+      if (platform !== "imessage") throw new Error("Spectrum setup is iMessage only");
+      const handle = tenantHandle(participantIds);
+      const existing = spectrumSpaces.get(handle);
+      if (existing) return { id: existing.id };
+      try {
+        const session = await spectrumSession(config);
+        const space = await session.openDm(handle);
+        spectrumSpaces.set(handle, space);
+        spectrumSpaces.set(space.id, space);
+        return { id: space.id };
+      } catch (err) {
+        throw scrubSecret(err, config.apiKey);
+      }
+    },
+    async sendMessage({ spaceId, text }) {
+      const space = spectrumSpaces.get(spaceId) ?? [...spectrumSpaces.values()].find((item) => item.id === spaceId);
+      if (!space) throw new Error("Spectrum space was not opened in this process");
+      try {
+        const sent = await space.send(text);
+        return { id: sent?.id || randomUUID() };
+      } catch (err) {
+        throw scrubSecret(err, config.apiKey);
+      }
+    },
+  };
+}
+
+/**
+ * Listen for inbound iMessage on a Spectrum project. Does not reply.
+ * Beta `pho_prj_` projects keep the webhook at POST /api/photon/inbound.
+ */
+export async function startSpectrumInbox(
+  config: PhotonConfig,
+  onText: (phone: string, text: string) => Promise<void>,
+): Promise<void> {
+  if (usesBetaPhotonApi(config) || config.platform !== "imessage") return;
+  if (spectrumGlobals.__ntkSpectrumInbox) return;
+  spectrumGlobals.__ntkSpectrumInbox = true;
+  let session: SpectrumSession;
+  try {
+    session = await spectrumSession(config);
+  } catch (err) {
+    spectrumGlobals.__ntkSpectrumInbox = false;
+    throw scrubSecret(err, config.apiKey);
+  }
+  void (async () => {
+    for await (const [, message] of session.messages) {
+      if (message.platform !== "imessage" || message.direction !== "inbound") continue;
+      if (message.content?.type !== "text" || typeof message.content.text !== "string") continue;
+      const phone = message.sender?.address || message.sender?.id;
+      if (!phone) continue;
+      try {
+        await onText(phone, message.content.text);
+      } catch (err) {
+        console.log(`[photon] inbound handler failed (${scrubSecret(err, config.apiKey).message})`);
+      }
+    }
+  })().catch((err) => {
+    console.log(`[photon] inbox stopped (${scrubSecret(err, config.apiKey).message})`);
+  });
+}
+
+function createBetaClient(config: PhotonConfig): PhotonMessagingClient {
   const photon = new Photon({ headers: { Authorization: `Bearer ${config.apiKey}` } });
   return {
     async createOrGetUser(handle, platform) {
@@ -82,6 +234,11 @@ export function createPhotonClient(config: PhotonConfig): PhotonMessagingClient 
       return { id: resourceId(sent, "message") };
     },
   };
+}
+
+export function createPhotonClient(config: PhotonConfig): PhotonMessagingClient {
+  if (usesBetaPhotonApi(config)) return createBetaClient(config);
+  return createSpectrumClient(config);
 }
 
 /**
