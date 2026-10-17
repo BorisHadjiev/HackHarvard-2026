@@ -1,11 +1,18 @@
 // Consent screen (server part): loads the request from the landlord portal.
-import type { VerificationRequest } from "@ntk/shared";
+import { EVIDENCE_LABELS, type EvidenceStrength, type VerificationRequest } from "@ntk/shared";
 import { tenantConfig } from "@/lib/config";
 import { DEMO_TENANTS } from "@/lib/nessie";
 import { plaidConfig } from "@/lib/plaid";
 import Consent from "./consent";
 
 export const dynamic = "force-dynamic";
+
+function evidenceLabel(value: unknown): string | null {
+  if (value === "bank" || value === "document_signed" || value === "document_bank_matched" || value === "document_unverified") {
+    return EVIDENCE_LABELS[value as EvidenceStrength];
+  }
+  return null;
+}
 
 export default async function RequestPage({
   params,
@@ -48,17 +55,28 @@ export default async function RequestPage({
       </main>
     );
   }
-  const body = (await res.json()) as { request: VerificationRequest; result?: { answer?: boolean } | null };
+  const body = (await res.json()) as { request: VerificationRequest; result?: { answer?: boolean; evidence?: string } | null };
   const request = body.request;
-  // The public payload's result is only a yes/no. Dollar amounts are not on this response.
+  // The public payload's result is only a yes/no plus a coarse evidence label.
   const recordedAnswer = body.result?.answer === true ? true : body.result?.answer === false ? false : null;
+  const recordedEvidence = evidenceLabel(body.result?.evidence);
+  const age = request.question.type === "age_over";
 
   return (
     <main className="tenant-page">
       <p className="kicker">{request.requesterName}</p>
-      <h1>A little certainty.<br />Your privacy, intact.</h1>
-      <p className="sub">Review the request below. Upload a document on this device, or use bank data. Only a yes or no can be shared.</p>
-      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} plaidConfigured={plaidConfig().configured} />
+      {age ? (
+        <>
+          <h1>Prove you&apos;re 18 or older</h1>
+          <p className="sub">The landlord learns only yes or no. Your date of birth, name and ID number stay on this device.</p>
+        </>
+      ) : (
+        <>
+          <h1>A little certainty.<br />Your privacy, intact.</h1>
+          <p className="sub">Review the request below. Upload a document on this device, or use bank data. Only a yes or no can be shared.</p>
+        </>
+      )}
+      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} recordedEvidence={recordedEvidence} plaidConfigured={plaidConfig().configured} />
     </main>
   );
 }
