@@ -5,8 +5,9 @@ import { checkIntegrity } from "@/lib/integrity";
 import { evaluateIncome } from "@/lib/income";
 import { buildClaimPayload } from "@/lib/claim";
 import { getBankDeposits, parseBankChoice } from "@/lib/bank";
-import { analyzeDocuments, DOCUMENT_METHOD, DOCUMENT_WINDOW_DAYS } from "@/lib/documents/analyze";
+import { analyzeDocuments } from "@/lib/documents/analyze";
 import { summarizeDecision } from "@/lib/documents/summary";
+import { declineNotice, deliveryFromScan } from "@/lib/document-outcome";
 import { readEvidenceRequest } from "@/lib/request-body";
 
 // The tenant approved. Everything sensitive happens here, on the tenant's machine:
@@ -36,11 +37,21 @@ export async function POST(req: Request) {
       const bank = body.confirmWithBank ? await getBankDeposits(choice).catch(() => undefined) : undefined;
       const decision = await analyzeDocuments(body.files, { bank, rent, multiple });
       local = { dataSource: "documents", medianMonthlyIncome: decision.monthlyIncome, evidence: decision.strength, documents: summarizeDecision(decision) };
-      if (!decision.strength) {
-        return NextResponse.json({ ok: false, code: "documents_unusable", message: decision.reason, local }, { status: 422 });
+      const delivery = deliveryFromScan(decision);
+      if (delivery.action === "decline") {
+        const decline = await fetch(`${portal}/api/decline`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(declineNotice(request.id)),
+        });
+        const declineReply = (await decline.json().catch(() => null)) as { declined?: boolean } | null;
+        if (decline.ok && declineReply?.declined === true) {
+          return NextResponse.json({ ok: true, outcome: "declined", declined: true, code: "documents_declined", message: decision.reason, local });
+        }
+        return NextResponse.json({ ok: false, code: "decline_failed", message: "The document was not accepted, and the landlord was not updated.", local }, { status: 502 });
       }
-      income = { meets: decision.meets, medianMonthlyIncome: decision.monthlyIncome, recurringPayers: [] };
-      evidence = { source: "document", strength: decision.strength, window_days: DOCUMENT_WINDOW_DAYS, method: DOCUMENT_METHOD };
+      income = { meets: delivery.meets, medianMonthlyIncome: decision.monthlyIncome, recurringPayers: [] };
+      evidence = delivery.evidence;
     } else {
       const { deposits, source } = await getBankDeposits(choice);
       income = evaluateIncome(deposits, rent, multiple);
@@ -61,5 +72,6 @@ export async function POST(req: Request) {
   const portalReply = await verdict.json();
 
   // Shown on the tenant's own screen only (it never left this machine).
-  return NextResponse.json({ ...portalReply, local }, { status: verdict.status });
+  const outcome = evidence?.source === "document" ? (income.meets ? "accepted" : "declined") : undefined;
+  return NextResponse.json({ ...portalReply, ...(outcome ? { outcome } : {}), local }, { status: verdict.status });
 }
