@@ -1,15 +1,8 @@
 // Generates the tenant app's Ed25519 signing key pair and writes it into each app's .env.local.
 // Run once after cloning: `npm run keys`. Re-running replaces the keys (old claims stop verifying).
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { generateSigningKeys } from "../shared/src/claims";
-
-function upsertEnv(path: string, values: Record<string, string>) {
-  const lines = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter(Boolean) : [];
-  const kept = lines.filter((l) => !Object.keys(values).some((k) => l.startsWith(`${k}=`)));
-  const added = Object.entries(values).map(([k, v]) => `${k}=${v}`);
-  writeFileSync(path, [...kept, ...added].join("\n") + "\n");
-}
+import { upsertEnv } from "./env-file";
 
 const { privateJwk, publicJwk } = await generateSigningKeys();
 
