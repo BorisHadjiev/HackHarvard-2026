@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { EVIDENCE_LABELS, type VerificationRequest } from "@ntk/shared";
+import { landlordVerdict } from "@/lib/verdict";
 
 type Share = { id: string; link: string };
 
@@ -174,12 +175,15 @@ function formatWhen(iso: string) {
 }
 
 function Status({ r }: { r: VerificationRequest }) {
-  if (r.status === "pending" && Date.parse(r.expiresAt) <= Date.now()) return <p className="verdict wait" role="status">Expired</p>;
-  if (r.status === "rejected") {
+  const label = landlordVerdict(r);
+  if (label === "Declined") {
+    const evidence = r.result?.evidence;
     return (
       <div role="status">
         <p className="verdict declined">Declined</p>
-        <p className="meta">Nothing financial was shared.</p>
+        {r.status === "verified" && evidence
+          ? <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}</p>
+          : <p className="meta">Nothing financial was shared.</p>}
       </div>
     );
   }
@@ -187,12 +191,10 @@ function Status({ r }: { r: VerificationRequest }) {
     const evidence = r.result.evidence ?? "bank";
     return (
       <div role="status">
-        {r.result.answer
-          ? <p className="verdict ok">Yes — meets the requirement</p>
-          : <p className="verdict bad">No — does not meet the requirement</p>}
+        <p className={r.result.answer ? "verdict ok" : "verdict bad"}>{label}</p>
         <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}{r.result.proof === "zk" ? " · proven in zero knowledge" : ""}</p>
       </div>
     );
   }
-  return <p className="verdict wait" role="status">Waiting for the tenant</p>;
+  return <p className="verdict wait" role="status">{label}</p>;
 }

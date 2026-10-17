@@ -4,11 +4,11 @@ import { useState } from "react";
 import type { VerificationRequest } from "@ntk/shared";
 import EvidencePicker, { DocumentReport, STRENGTH_LABELS, type Decision, type Mode } from "./evidence";
 
-type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number; evidence?: string | null; documents?: Decision; proof?: { provingMs: number } } };
+type Reply = { ok: boolean; answer?: boolean; outcome?: "accepted" | "declined"; declined?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number; evidence?: string | null; documents?: Decision; proof?: { provingMs: number } } };
 
 export default function Consent({ request, portal, tenants, recordedAnswer = null, plaidConfigured = false }: { request: VerificationRequest; portal: string; tenants: Record<string, string>; recordedAnswer?: boolean | null; plaidConfigured?: boolean }) {
   const [tenant, setTenant] = useState(Object.keys(tenants)[0] ?? "");
-  const [mode, setMode] = useState<Mode>("bank");
+  const [mode, setMode] = useState<Mode>("documents");
   const [plaidLinkId, setPlaidLinkId] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [confirmWithBank, setConfirmWithBank] = useState(true);
@@ -130,9 +130,9 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
           <label className="consent-check"><input type="checkbox" checked={consent} disabled={busy} onChange={(e) => setConsent(e.target.checked)} /><span>I agree to share only my eligibility result and verification metadata for this request.</span></label>
           <div className="actions">
             <button type="button" className="secondary" onClick={decline} disabled={busy}>Decline</button>
-            <button type="button" onClick={approve} disabled={busy || !tenant || !consent || (mode === "documents" && !files.length)}>{busy ? "Checking on this device…" : "Approve & share result →"}</button>
+            <button type="button" onClick={approve} disabled={busy || !tenant || !consent || (mode === "documents" && !files.length)}>{busy ? "Checking the document on this device…" : mode === "documents" ? "Check document & share result →" : "Approve & share result →"}</button>
           </div>
-          <p className="hint">Approve sends only a yes or no. Decline tells them you declined and sends no financial data.</p>
+          <p className="hint">The document check sends only a yes or no. Decline tells them you declined and sends no financial data.</p>
         </section>
       )}
 
@@ -145,10 +145,15 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
 
       {reply && (
         <section className="card" role="status">
-          {reply.ok ? (
+          {reply.ok && reply.outcome === "declined" ? (
+            <>
+              <p className="verdict declined">Declined</p>
+              <p className="hint">The document check declined this request. {request.requesterName} can see that. No document, balance, or dollar amount was sent.</p>
+            </>
+          ) : reply.ok ? (
             <>
               <span className="seal" aria-hidden="true">✓</span><p className="kicker">Signed result shared</p>
-              <p className={reply.answer ? "verdict ok" : "verdict bad"}>{reply.answer ? "Yes — meets the requirement" : "No — does not meet the requirement"}</p>
+              <p className={reply.answer ? "verdict ok" : "verdict bad"}>{reply.answer ? (reply.outcome === "accepted" ? "Accepted — meets the requirement" : "Yes — meets the requirement") : "No — does not meet the requirement"}</p>
               <p className="hint">{request.requesterName} now sees that answer{reply.local?.evidence ? `, marked “${STRENGTH_LABELS[reply.local.evidence]}”` : ""}. They do not see a dollar amount or any document.</p>
             </>
           ) : (
@@ -188,6 +193,8 @@ function explain(reply: Reply): string {
       return "The answer did not match the question, so it was rejected.";
     case "documents_unusable":
       return "None of the documents passed the checks, so nothing was signed or sent. See why below.";
+    case "decline_failed":
+      return "The document was not accepted, and the landlord was not updated. Nothing financial was sent.";
     case "no_documents":
       return "Add at least one document first.";
     case "bank_unavailable":
