@@ -32,6 +32,9 @@ jobs:
       - name: Unit tests (shared + tenant-app)
         run: npm test
 
+      - name: Synthetic income and age accuracy
+        run: npm run doc-accuracy
+
       - name: Build both apps
         run: npm run build
 

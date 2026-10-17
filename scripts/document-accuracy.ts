@@ -3,12 +3,12 @@
 //   npm run doc-accuracy              writes docs/document-accuracy.md
 //   npm run doc-accuracy -- --people 30
 import { writeFileSync } from "node:fs";
-import { analyzeFile } from "../tenant-app/lib/documents/analyze";
+import { analyzeFile, analyzeIdDocuments, decideAge } from "../tenant-app/lib/documents/analyze";
 import { stopOcr } from "../tenant-app/lib/documents/ocr";
 import type { Deposit } from "../tenant-app/lib/nessie";
 import type { DocumentReport } from "../tenant-app/lib/documents/types";
 import {
-  f1040Rows, form1040, payStub, payStubRows, rowsToImage, rowsToPdf, statementRows, w2, w2Rows,
+  ageSpecimens, f1040Rows, form1040, payStub, payStubRows, rowsToImage, rowsToPdf, statementRows, w2, w2Rows,
   type Layout, type PayStubData, type Row, type StatementData,
 } from "./lib/sample-documents";
 
@@ -102,6 +102,11 @@ for (const c of cases) {
   const noBank = await analyzeFile(c.file, { now, trusted: [] });
   results.push({ c, withBank, noBank });
 }
+const ageResults = [];
+for (const specimen of await ageSpecimens(now)) {
+  const decision = decideAge(await analyzeIdDocuments([specimen], now), 18, now);
+  ageResults.push({ specimen, decision });
+}
 await stopOcr();
 const seconds = ((Date.now() - started) / 1000).toFixed(0);
 
@@ -150,6 +155,22 @@ if (fp.length) {
   lines.push("", "Why genuine documents were rejected:", "");
   for (const r of fp.slice(0, 12)) lines.push(`- ${r.c.file.name}: ${r.withBank.checks.filter((c) => c.status === "fail").map((c) => c.label).join("; ")}`);
 }
+lines.push("", "## Age accuracy (separate specimen corpus)", "");
+lines.push("Seven visibly fictional images run through the real offline barcode/OCR reader. Expected outcomes distinguish a verified no from an unreadable/expired/edited ID decline. These results do not measure issuer authenticity or real-world fraud detection.", "");
+row("Specimen", "Expected", "Observed", "Correct");
+row("---", "---", "---", "---");
+const outcome = (d: { usable: boolean; meets: boolean }) => !d.usable ? "declined" : d.meets ? "yes" : "no";
+let ageCorrect = 0;
+for (const { specimen, decision } of ageResults) {
+  const correct = outcome(specimen.expected) === outcome(decision);
+  if (correct) ageCorrect++;
+  row(specimen.name, outcome(specimen.expected), outcome(decision), correct ? "yes" : "NO");
+}
+lines.push("", `Age outcomes correct: ${ageCorrect}/${ageResults.length} (${pct(ageCorrect, ageResults.length)}).`);
+if (ageCorrect !== ageResults.length) process.exitCode = 1;
+// Preserve the existing income baseline: genuine documents must still all be accepted,
+// and every seeded forgery must be caught when the bank is available.
+if (fp.length || forged.some(r => r.withBank.usable)) process.exitCode = 1;
 lines.push("", "## What this does not prove", "");
 lines.push("- A careful forgery with consistent totals is only caught when the bank's own records contradict it. Without a bank connection it counts as \"documents only, not independently verified\", and the landlord sees that label.");
 lines.push("- Tax forms cover a past year, so the bank check is a plausibility check, not an exact match.");

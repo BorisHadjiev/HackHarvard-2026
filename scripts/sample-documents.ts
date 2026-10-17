@@ -4,7 +4,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { upsertEnv } from "./env-file";
-import { demoDocumentData, f1040Rows, makeTestIssuer, payStubRows, rowsToImage, rowsToPdf, signPdf, statementRows, w2Rows, type TestIssuer } from "./lib/sample-documents";
+import { ageSpecimens, demoDocumentData, f1040Rows, makeTestIssuer, payStubRows, rowsToImage, rowsToPdf, signPdf, statementRows, w2Rows, type TestIssuer } from "./lib/sample-documents";
 
 const root = process.cwd();
 const out = path.join(root, "sample-documents");
@@ -36,10 +36,11 @@ const files: [string, Uint8Array | Promise<Uint8Array>, string][] = [
   ["leo-pay-stub-EDITED.pdf", rowsToPdf(payStubRows(d.leoCrude), { producer: "iLovePDF", modifiedAfter: true }), "Crude edit: gross raised. Fails the arithmetic check; not used."],
   ["leo-pay-stub-EDITED-careful.pdf", rowsToPdf(payStubRows(d.leoCareful)), "Careful edit: adds up, but this net pay never reached Leo's bank; not used when confirming with the bank."],
 ];
+for (const id of await ageSpecimens()) files.push([id.name, id.data, id.note]);
 const readme = ["Need-to-Know demo documents (SAMPLE data, fictional employers and bank).", `Generated ${new Date().toISOString()} to match today's demo bank data. Re-run \`npm run sample-docs\` on demo day.`, ""];
 for (const [name, data, note] of files) {
   writeFileSync(path.join(out, name), await data);
-  readme.push(`${name}\n  ${note}`);
+  readme.push(`${name}: ${note}`);
 }
 writeFileSync(path.join(out, "README.txt"), readme.join("\n") + "\n");
 console.log(`Wrote ${files.length} documents to sample-documents/.`);

@@ -253,3 +253,65 @@ export function demoDocumentData(now = new Date()) {
   const maya1040 = form1040({ taxYear: year - 1, name: "Maya Patel", wages: mayaW2.box1, other: 410 });
   return { maya, leo, leoCrude, leoCareful, mayaStatement, mayaW2, maya1040 };
 }
+
+// ------------------------------------------------------------------ visibly fictional age specimens
+
+export interface AgeSpecimen {
+  name: string; type: string; data: Uint8Array; note: string;
+  expected: { usable: boolean; meets: boolean };
+}
+
+/** Calendar offsets clamp month ends (including leap day) instead of rolling into the next month. */
+function calendarOffset(now: Date, months: number): string {
+  const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + months, 1));
+  const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+  target.setUTCDate(Math.min(now.getUTCDate(), last));
+  return target.toISOString().slice(0, 10);
+}
+
+export async function ageSpecimens(now = new Date()): Promise<AgeSpecimen[]> {
+  const { default: bwipjs } = await import("bwip-js/node"); // fixture-only dev dependency
+  const { mrzCheckDigit } = await import("../../tenant-app/lib/documents/id-card");
+  const adult = calendarOffset(now, -25 * 12), minor = calendarOffset(now, -(17 * 12 + 11));
+  const expiry = calendarOffset(now, 5 * 12), expired = calendarOffset(now, -12);
+  const mmddyyyy = (s: string) => s.slice(5, 7) + s.slice(8, 10) + s.slice(0, 4);
+  const display = (s: string) => `${s.slice(5, 7)}/${s.slice(8, 10)}/${s.slice(0, 4)}`;
+  const watermark = "SPECIMEN · NOT A GOVERNMENT DOCUMENT";
+  const text = (s: string, x: number, y: number, size = 32, mono = false) =>
+    `<text x="${x}" y="${y}" font-family="${mono ? "DejaVu Sans Mono, Menlo, monospace" : "Arial, sans-serif"}" font-size="${size}" fill="#111">${esc(s)}</text>`;
+  const silhouette = '<circle cx="160" cy="230" r="52" fill="#999"/><path d="M65 390 Q65 290 160 290 Q255 290 255 390Z" fill="#999"/>';
+  const render = (body: string, height = 650) => sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${height}" viewBox="0 0 1600 ${height}"><rect width="100%" height="100%" fill="#fff"/>${body}${text(watermark, 38, 100, 48)}</svg>`)).png().toBuffer();
+  const license = (dob: string, exp: string, name: string) => render(
+    text("State of Demo — DRIVER LICENSE — FICTIONAL", 38, 45, 34) + silhouette +
+    text(`DEMO, ${name}`, 330, 210, 48) + text(`DOB ${display(dob)}`, 330, 290, 44) +
+    text(`EXP ${display(exp)}`, 330, 365, 44) + text("ID DEMO000000 · NOT VALID FOR IDENTIFICATION", 38, 540, 32));
+  // AAMVA: one DL subfile; offset 31 bytes includes the header and its directory entry.
+  const subfile = `DLDAQDEMO000000\nDCSDEMO\nDACADULT\nDBB${mmddyyyy(adult)}\nDBA${mmddyyyy(expiry)}\nDBD${mmddyyyy(calendarOffset(now, -12))}\nDAJZZ\nDCGUTO\nDAG1 DEMO WAY\nDAIDEMOVILLE\nDAK00000\nDBC9\nDDEU\nDDFU\r`;
+  const aamva = `@\n\x1e\rANSI 000000100001DL0031${String(Buffer.byteLength(subfile)).padStart(4, "0")}${subfile}`;
+  const barcode = await bwipjs.toBuffer({ bcid: "pdf417", text: aamva, scale: 3, columns: 8, paddingwidth: 24, paddingheight: 24, backgroundcolor: "ffffff" } as unknown as Parameters<typeof bwipjs.toBuffer>[0]);
+  const barcodeMeta = await sharp(barcode).metadata();
+  const back = await sharp(await render(text("State of Demo — DRIVER LICENSE — BACK", 38, 45, 34) + text("DEMO, ADULT · Fictional issuer / test barcode", 38, 160), Math.max(650, 220 + barcodeMeta.height!)))
+    .composite([{ input: barcode, left: 40, top: 200 }]).png().toBuffer();
+  const yy = (s: string) => s.slice(2, 4) + s.slice(5, 7) + s.slice(8, 10);
+  const cd = (s: string) => String(mrzCheckDigit(s));
+  const doc = "123456789", birth = yy(adult), exp = yy(expiry);
+  const l1 = "P<UTODEMO<<ADULT".padEnd(44, "<");
+  const body = `${doc}${cd(doc)}UTO${birth}${cd(birth)}X${exp}${cd(exp)}${"<".repeat(14)}<`;
+  const l2 = body + cd(body.slice(0, 10) + body.slice(13, 20) + body.slice(21, 43));
+  const altered = l2.slice(0, 18) + String((Number(l2[18]) + 1) % 10) + l2.slice(19);
+  const passport = (zone: string) => render(text("UTOPIA / UTO — PASSPORT — FICTIONAL", 38, 45, 34) + silhouette +
+    text("DEMO, ADULT", 330, 220, 48) + text("Country UTO · Specimen photo page", 330, 300, 32) +
+    text(l1, 38, 540, 54, true) + text(zone, 38, 610, 54, true));
+  const front = await license(adult, expiry, "ADULT");
+  const photo = await sharp(front).rotate(2, { background: "#ddd" }).blur(0.5).jpeg({ quality: 78 }).toBuffer();
+  const entries: [string, Buffer, string, boolean, boolean][] = [
+    ["adult-license-front.png", front, "Age 25; front OCR; verified yes (document_unverified).", true, true],
+    ["adult-license-back.png", back, "Age 25; AAMVA PDF417 barcode; verified yes (document_unverified).", true, true],
+    ["minor-license.png", await license(minor, expiry, "MINOR"), "Age 17 years 11 months; verified no.", true, false],
+    ["expired-adult-license.png", await license(adult, expired, "ADULT"), "Expired adult ID; decline.", false, false],
+    ["adult-passport.png", await passport(l2), "UTO passport; valid MRZ check digits; verified yes.", true, true],
+    ["adult-passport-edited.png", await passport(altered), "One MRZ birth-date digit changed; decline (check digit mismatch).", false, false],
+    ["adult-license-phone.jpg", photo, "Rotated, blurred JPEG of adult front; verified yes.", true, true],
+  ];
+  return entries.map(([name, data, note, usable, meets]) => ({ name, data: new Uint8Array(data), type: name.endsWith("jpg") ? "image/jpeg" : "image/png", note, expected: { usable, meets } }));
+}
