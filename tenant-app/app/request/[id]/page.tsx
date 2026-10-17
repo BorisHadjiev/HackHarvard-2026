@@ -17,30 +17,47 @@ export default async function RequestPage({
   const { portal } = await searchParams;
   const portalUrl = portal || tenantConfig().defaultPortalUrl;
 
-  const res = await fetch(`${portalUrl}/api/requests/${encodeURIComponent(id)}`, { cache: "no-store" });
-  if (!res.ok) {
+  let res: Response;
+  try {
+    res = await fetch(`${portalUrl}/api/requests/${encodeURIComponent(id)}`, { cache: "no-store" });
+  } catch {
     return (
       <main>
-        <header className="top">
-          <span className="mark">Need-to-Know</span>
-          <span className="role">Tenant</span>
-        </header>
-        <h1>This link doesn&apos;t match a request.</h1>
-        <p className="sub">Ask the landlord to send a new one. Nothing was read from a bank account.</p>
+        <h1>Can&apos;t reach the landlord</h1>
+        <p className="sub">The portal that sent this link is not responding. Ask them to send it again once their portal is open.</p>
+        <p><a href="/">Back to Need-to-Know</a></p>
       </main>
     );
   }
-  const { request, result } = (await res.json()) as { request: VerificationRequest; result: { answer: boolean } | null };
+  if (res.status === 404) {
+    return (
+      <main>
+        <h1>This link doesn&apos;t match an open request</h1>
+        <p className="sub">It may be mistyped, or the request was never created. Ask the landlord for a new link.</p>
+        <p><a href="/">Back to Need-to-Know</a></p>
+      </main>
+    );
+  }
+  if (!res.ok) {
+    return (
+      <main>
+        <h1>This request didn&apos;t load</h1>
+        <p className="sub">The landlord portal returned an error. Refresh this page, or ask them to send a new link.</p>
+        <p><a href="/">Back to Need-to-Know</a></p>
+      </main>
+    );
+  }
+  const body = (await res.json()) as { request: VerificationRequest; result?: { answer?: boolean } | null };
+  const request = body.request;
+  // The public payload's result is only a yes/no. Dollar amounts are not on this response.
+  const recordedAnswer = body.result?.answer === true ? true : body.result?.answer === false ? false : null;
 
   return (
     <main>
-      <header className="top">
-        <span className="mark">Need-to-Know</span>
-        <span className="role">Tenant</span>
-      </header>
-      <h1>{request.requesterName} has a question</h1>
-      <p className="sub">Answered on this device. Your bank data stays here.</p>
-      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} verdict={result} />
+      <p className="kicker">{request.requesterName}</p>
+      <h1>Review this question</h1>
+      <p className="sub">Need-to-Know answers it on this device. Your bank data stays here until you approve — and even then, only a yes or no is sent.</p>
+      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} />
     </main>
   );
 }

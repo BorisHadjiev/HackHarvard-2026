@@ -27,10 +27,6 @@ export default async function UnlinkabilityPage() {
 
   return (
     <main>
-      <header className="top">
-        <a className="mark" href="/">Need-to-Know</a>
-        <span className="role">Demo</span>
-      </header>
       <h1>Same person. Different id.</h1>
       <p className="sub">
         Each landlord only receives a pairwise subject. Pooling the four values does not show which two came from the same tenant.
