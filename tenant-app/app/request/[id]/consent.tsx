@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { VerificationRequest } from "@ntk/shared";
 import EvidencePicker, { DocumentReport, STRENGTH_LABELS, type Decision, type Mode } from "./evidence";
 
-type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number; evidence?: string | null; documents?: Decision } };
+type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number; evidence?: string | null; documents?: Decision; proof?: { provingMs: number } } };
 
 export default function Consent({ request, portal, tenants, recordedAnswer = null, plaidConfigured = false }: { request: VerificationRequest; portal: string; tenants: Record<string, string>; recordedAnswer?: boolean | null; plaidConfigured?: boolean }) {
   const [tenant, setTenant] = useState(Object.keys(tenants)[0] ?? "");
@@ -161,6 +161,9 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
               <p className="mono">
                 Median monthly recurring income ${Math.round(reply.local.medianMonthlyIncome).toLocaleString("en-US")} (source: {reply.local.dataSource})
               </p>
+              {reply.local.proof && (
+                <p className="hint">Zero-knowledge proof made here in {(reply.local.proof.provingMs / 1000).toFixed(1)} s. The landlord checked it against your bank&apos;s signature without seeing a single deposit.</p>
+              )}
             </div>
           )}
         </section>
@@ -189,6 +192,14 @@ function explain(reply: Reply): string {
       return "Add at least one document first.";
     case "bank_unavailable":
       return `Couldn't read your bank data (${reply.message}). Nothing was sent.`;
+    case "bank_signer_unavailable":
+      return `${reply.message}. Start it with npm run dev. Nothing was sent.`;
+    case "proof_required":
+      return "This landlord only accepts answers with a zero-knowledge proof. Use a demo bank account.";
+    case "bad_proof":
+    case "proof_mismatch":
+    case "bad_bank_attestation":
+      return `The landlord rejected the proof (${reply.message}). Nothing was recorded.`;
     default:
       return reply.message || "The answer was not accepted. Nothing new was sent.";
   }

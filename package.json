@@ -5,6 +5,8 @@
   "description": "Prove one fact (income >= 3x rent, age >= 18) without handing over your documents. HackHarvard 2026.",
   "workspaces": [
     "shared",
+    "zk",
+    "bank-signer",
     "tenant-app",
     "landlord-portal",
     "messaging"
@@ -13,15 +15,18 @@
     "setup": "npm install && npm run keys",
     "keys": "tsx scripts/gen-keys.ts",
     "sign-manifest": "tsx scripts/sign-manifest.ts",
-    "dev": "concurrently -n portal,tenant -c blue,green \"npm run dev -w landlord-portal\" \"npm run dev -w tenant-app\"",
+    "dev": "concurrently -n portal,tenant,bank -c blue,green,yellow \"npm run dev -w landlord-portal\" \"npm run dev -w tenant-app\" \"npm run dev -w bank-signer\"",
     "dev:portal": "npm run dev -w landlord-portal",
     "dev:tenant": "npm run dev -w tenant-app",
-    "test": "npm test -w shared && npm test -w tenant-app && npm test -w landlord-portal && npm test -w messaging",
+    "test": "npm test -w shared && npm test -w zk && npm test -w bank-signer && npm test -w tenant-app && npm test -w landlord-portal && npm test -w messaging",
     "build": "npm run build -w landlord-portal && npm run build -w tenant-app",
     "smoke": "tsx scripts/smoke-test.ts",
     "collusion": "tsx scripts/collusion-test.ts",
     "sample-docs": "tsx scripts/sample-documents.ts",
-    "doc-accuracy": "tsx scripts/document-accuracy.ts"
+    "doc-accuracy": "tsx scripts/document-accuracy.ts",
+    "dev:bank": "npm run dev -w bank-signer",
+    "start:bank": "npm run start -w bank-signer",
+    "compile:zk": "npm run compile -w zk"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

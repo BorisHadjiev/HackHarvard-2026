@@ -190,7 +190,7 @@ function Status({ r }: { r: VerificationRequest }) {
         {r.result.answer
           ? <p className="verdict ok">Yes — meets the requirement</p>
           : <p className="verdict bad">No — does not meet the requirement</p>}
-        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}</p>
+        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}{r.result.proof === "zk" ? " · proven in zero knowledge" : ""}</p>
       </div>
     );
   }
