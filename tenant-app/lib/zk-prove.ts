@@ -39,12 +39,14 @@ export async function proveWithBank(bankSignerUrl: string, account: string, requ
   if (typeof att.commitment !== "string" || typeof att.asOfDay !== "number") throw new BankSignerError("Bank attestation is malformed");
   const deposits: ZkDeposit[] = body.deposits.map((d) => ({ amountCents: d.amountCents, day: d.day, payer: BigInt(d.payer) }));
 
+  const q = request.question;
+  if (q.type !== "income_to_rent") throw new BankSignerError("A zero-knowledge income proof only answers income questions");
   const t0 = Date.now();
   const proof = await proveIncome(deposits, salt, {
     commitment: att.commitment,
     today: att.asOfDay,
-    rentCents: Math.round(request.question.rent * 100),
-    multipleX100: Math.round(request.question.multiple * 100),
+    rentCents: Math.round(q.rent * 100),
+    multipleX100: Math.round(q.multiple * 100),
     requestTag: requestTag(request.nonce),
   });
   return {
