@@ -36,8 +36,8 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   the request's one-time code. The portal (`landlord-portal/lib/proof.ts`) verifies the bank signature
   (`TRUSTED_BANK_KEYS`) and the proof, and requires both for bank-strength claims when a bank key is set.
   Circuit changes: edit main.nr, run `npm run compile:zk` (writes `zk/artifacts/income_to_rent.ts`), commit it.
-- Keys: `npm run keys` writes `TENANT_APP_PRIVATE_JWK` (tenant-app/.env.local) and
-  `TENANT_APP_PUBLIC_JWK` (landlord-portal/.env.local).
+- Keys: `npm run keys` writes `TENANT_APP_PRIVATE_JWK` (tenant-app/.env.local), the bank signer key, and
+  `TENANT_APP_PUBLIC_JWK` + `TRUSTED_BANK_KEYS` (landlord-portal/.env.local). Existing keys are kept; `--rotate` replaces them.
 
 ## Signed claim (ClaimPayload in shared/src/types.ts)
 `{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, strength, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
