@@ -1,8 +1,8 @@
 // Shared types for Need-to-Know. Owner: Sam. Announce changes in the group chat:
 // both apps import from here.
 
-/** What a landlord asks for. Only one claim type exists in the MVP. */
-export type ClaimType = "income_to_rent"; // stretch: "age_over"
+/** What a landlord can ask for. */
+export type ClaimType = "income_to_rent" | "age_over";
 
 export interface IncomeToRentQuestion {
   type: "income_to_rent";
@@ -12,7 +12,21 @@ export interface IncomeToRentQuestion {
   multiple: number;
 }
 
-export type Question = IncomeToRentQuestion;
+export interface AgeOverQuestion {
+  type: "age_over";
+  /** Only 18 in this build. A fixed set of thresholds keeps tenants in large, identical groups. */
+  min_age: 18;
+}
+
+export type Question = IncomeToRentQuestion | AgeOverQuestion;
+
+/**
+ * The answer part of a signed claim. Each branch repeats the question so the portal can check the
+ * answer matches what it asked. Never a dollar amount, a date of birth, an age, or a name.
+ */
+export type ClaimBody =
+  | { type: "income_to_rent"; multiple: number; rent: number; result: boolean }
+  | { type: "age_over"; min_age: 18; result: boolean };
 
 /**
  * How the tenant's app established the answer, strongest first. Deliberately coarse: every extra
@@ -48,12 +62,7 @@ export interface ClaimPayload {
   nonce: string;
   /** Pairwise ID: different for every landlord, so landlords can't track a tenant */
   sub: string;
-  claim: {
-    type: ClaimType;
-    multiple: number;
-    rent: number;
-    result: boolean;
-  };
+  claim: ClaimBody;
   evidence: {
     /** Where the numbers came from. Never the documents or deposits themselves. */
     source: "bank" | "document";

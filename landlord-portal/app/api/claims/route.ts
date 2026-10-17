@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { verifyClaim, ClaimError } from "@ntk/shared";
+import { verifyClaim, claimAnswersQuestion, ClaimError } from "@ntk/shared";
 import { store } from "@/lib/store";
 import { portalConfig } from "@/lib/config";
 
@@ -23,7 +23,8 @@ export async function POST(req: Request) {
       expectedNonce: request.nonce,
       trustedBuildHashes: cfg.trustedBuildHashes,
     });
-    if (claim.claim.rent !== request.question.rent || claim.claim.multiple !== request.question.multiple) {
+    // The answer must be to this exact question: same type, and same rent/multiple or min_age.
+    if (!claimAnswersQuestion(claim.claim, request.question)) {
       return NextResponse.json({ ok: false, code: "wrong_question" }, { status: 400 });
     }
     // Check again: two answers sent at once could both pass the first check while verifyClaim awaited.

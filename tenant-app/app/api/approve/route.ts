@@ -26,6 +26,10 @@ export async function POST(req: Request) {
   const reqRes = await fetch(`${portal}/api/requests/${encodeURIComponent(body.requestId)}`, { cache: "no-store" });
   if (!reqRes.ok) return NextResponse.json({ ok: false, code: "unknown_request" }, { status: 404 });
   const { request } = (await reqRes.json()) as { request: VerificationRequest };
+  // Age questions are answered by the ID reader (next PR). Until then this route only knows income.
+  if (request.question.type !== "income_to_rent") {
+    return NextResponse.json({ ok: false, code: "unsupported_question", message: "This build answers income questions only" }, { status: 400 });
+  }
   const { rent, multiple } = request.question;
 
   let income;

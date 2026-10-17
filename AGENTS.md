@@ -34,7 +34,11 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   `TENANT_APP_PUBLIC_JWK` (landlord-portal/.env.local).
 
 ## Signed claim (ClaimPayload in shared/src/types.ts)
-`{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, strength, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
+`{ aud, nonce, sub (pairwise), claim: ClaimBody, evidence: { source, strength, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
+`ClaimBody` is `{ type: "income_to_rent", multiple, rent, result }` or `{ type: "age_over", min_age: 18, result }`, with no
+other fields (the portal rejects extras as malformed). Age claims always carry `AGE_EVIDENCE` from `shared/src/age.ts`
+(`document` / `document_unverified` / 0 days / "government ID, date of birth"); anything else is malformed.
+The portal checks the answer against the question with `claimAnswersQuestion` (type, then rent+multiple or min_age).
 `evidence.source` is `"bank"` or `"document"`; `evidence.strength` is one of `bank`, `document_signed`,
 `document_bank_matched`, `document_unverified` (claims from older builds without it count as `bank`).
 `method` and `window_days` are fixed per source, never per tenant.
