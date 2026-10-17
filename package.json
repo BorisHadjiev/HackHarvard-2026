@@ -17,7 +17,8 @@
     "dev:tenant": "npm run dev -w tenant-app",
     "test": "npm test -w shared && npm test -w tenant-app && npm test -w landlord-portal",
     "build": "npm run build -w landlord-portal && npm run build -w tenant-app",
-    "smoke": "tsx scripts/smoke-test.ts"
+    "smoke": "tsx scripts/smoke-test.ts",
+    "collusion": "tsx scripts/collusion-test.ts"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

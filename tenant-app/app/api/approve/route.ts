@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { signClaim, pairwiseSubject, type ClaimPayload, type VerificationRequest } from "@ntk/shared";
+import { signClaim, type VerificationRequest } from "@ntk/shared";
 import { tenantConfig } from "@/lib/config";
 import { checkIntegrity } from "@/lib/integrity";
 import { fetchDeposits, DEMO_TENANTS, type DemoTenant } from "@/lib/nessie";
-import { evaluateIncome, WINDOW_DAYS, METHOD } from "@/lib/income";
+import { evaluateIncome } from "@/lib/income";
+import { buildClaimPayload } from "@/lib/claim";
 
 // The tenant approved. Everything sensitive happens here, on the tenant's machine:
 // tamper check -> fetch deposits -> compute -> sign yes/no -> send only the signed answer.
@@ -25,14 +26,7 @@ export async function POST(req: Request) {
   const { deposits, source } = await fetchDeposits(tenant);
   const income = evaluateIncome(deposits, request.question.rent, request.question.multiple);
 
-  const payload: ClaimPayload = {
-    aud: request.audience,
-    nonce: request.nonce,
-    sub: await pairwiseSubject(`${cfg.tenantSecret}:${tenant}`, request.audience),
-    claim: { type: "income_to_rent", rent: request.question.rent, multiple: request.question.multiple, result: income.meets },
-    evidence: { source: "bank", window_days: WINDOW_DAYS, method: METHOD },
-    build: { hash: integrity.hash, integrity: "passed" },
-  };
+  const payload = await buildClaimPayload(request, { id: tenant, secret: cfg.tenantSecret }, income, integrity);
   const token = await signClaim(payload, cfg.privateJwk);
 
   const verdict = await fetch(`${portal}/api/claims`, {
