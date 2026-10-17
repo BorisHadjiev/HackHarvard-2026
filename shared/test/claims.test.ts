@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { decodeJwt } from "jose";
-import { generateSigningKeys, signClaim, verifyClaim, pairwiseSubject, ClaimError, CLAIM_TTL_SECONDS } from "../src/index";
+import { SignJWT, importJWK, decodeJwt } from "jose";
+import { generateSigningKeys, signClaim, verifyClaim, pairwiseSubject, ClaimError, CLAIM_TTL_SECONDS, CLAIM_ALG, CLAIM_ISSUER } from "../src/index";
 import type { ClaimPayload } from "../src/index";
 
 const payload = (over: Partial<ClaimPayload> = {}): ClaimPayload => ({
@@ -99,4 +99,16 @@ test("a claim signed at 12:59 verifies until its exp, and not after", async () =
   await verifyClaim(token, publicJwk, { ...opts, now: signedAt }); // right after signing
   await verifyClaim(token, publicJwk, at(exp! - 1)); // last valid second
   await expectCode(verifyClaim(token, publicJwk, at(exp!)), "expired");
+});
+
+test("a correctly signed token with missing claim fields is rejected as malformed", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const key = await importJWK(privateJwk, CLAIM_ALG);
+  const token = await new SignJWT({ aud: "landlord-portal", nonce: "nonce-123", sub: "x" })
+    .setProtectedHeader({ alg: CLAIM_ALG, typ: "JWT" })
+    .setIssuer(CLAIM_ISSUER)
+    .setIssuedAt()
+    .setExpirationTime("1h")
+    .sign(key);
+  await expectCode(verifyClaim(token, publicJwk, opts), "malformed");
 });

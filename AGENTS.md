@@ -17,11 +17,16 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
 - `tenant-app/` (port 3001): `/request/[id]` consent screen; `POST /api/approve` runs
   integrity check → `fetchDeposits` (lib/nessie.ts) → `evaluateIncome` (lib/income.ts) → `signClaim` →
   posts the token to the portal.
+- Tamper check (`tenant-app/lib/integrity.ts`, `lib/build-hash.ts`): hashes `tenant-app/app`, `tenant-app/lib`,
+  `shared/src` and compares with `tenant-app/build-manifest.json`, signed by a separate release key
+  (`npm run sign-manifest`, key in git-ignored `.keys/`). No manifest = unsigned dev build (hash `unsigned-dev-build`).
+- Portal store (`landlord-portal/lib/store.ts`): JSON file `landlord-portal/.data/store.json`; Map/Set changes save
+  automatically, call `store.save()` after editing a request in place.
 - Keys: `npm run keys` writes `TENANT_APP_PRIVATE_JWK` (tenant-app/.env.local) and
   `TENANT_APP_PUBLIC_JWK` (landlord-portal/.env.local).
 
 ## Signed claim (ClaimPayload in shared/src/types.ts)
-`{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, window_days, method }, build: { hash, integrity } }` + `iss`, `iat`, `exp` (7 days).
+`{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the hour), `exp` (7 days).
 The portal checks, in order: signature, issuer, audience, expiry, nonce matches the open request, nonce not
 already used, build hash trusted (when `TRUSTED_BUILD_HASHES` is set), question matches.
 
@@ -46,3 +51,4 @@ any per-tenant field (device id, account id, exact timestamps, IP) to the claim 
 
 ## Commands
 - `npm run setup`, `npm run dev`, `npm test`, `npm run smoke` (with dev running), `npm run build`
+- `npm run sign-manifest` approves the current code (tamper check on); `npm run sign-manifest -- --reset` turns it off

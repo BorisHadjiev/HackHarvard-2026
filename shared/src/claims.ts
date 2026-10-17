@@ -66,6 +66,7 @@ export async function verifyClaim(token: string, publicJwk: JWK, opts: VerifyOpt
       algorithms: [CLAIM_ALG],
       issuer: CLAIM_ISSUER,
       audience: opts.audience,
+      typ: "JWT",
       currentDate: opts.now,
     });
     payload = result.payload as Record<string, unknown>;
@@ -79,12 +80,25 @@ export async function verifyClaim(token: string, publicJwk: JWK, opts: VerifyOpt
     throw new ClaimError("malformed", `Claim could not be verified: ${(err as Error).message}`);
   }
 
+  if (!hasClaimShape(payload)) throw new ClaimError("malformed", "Claim is missing required fields");
   const claim = payload as unknown as VerifiedClaim;
   if (claim.nonce !== opts.expectedNonce) throw new ClaimError("wrong_nonce", "Claim does not answer this request");
   if (opts.trustedBuildHashes.length > 0 && !opts.trustedBuildHashes.includes(claim.build?.hash)) {
     throw new ClaimError("untrusted_build", "Claim came from an unapproved build of the tenant app");
   }
   return claim;
+}
+
+/** A correctly signed token can still be the wrong shape (e.g. signed by an old build). Check before use. */
+function hasClaimShape(p: Record<string, unknown>): boolean {
+  const c = p.claim as Record<string, unknown> | undefined;
+  const b = p.build as Record<string, unknown> | undefined;
+  return (
+    typeof p.nonce === "string" &&
+    typeof p.sub === "string" &&
+    !!c && c.type === "income_to_rent" && typeof c.rent === "number" && typeof c.multiple === "number" && typeof c.result === "boolean" &&
+    !!b && typeof b.hash === "string" && b.integrity === "passed"
+  );
 }
 
 /**
