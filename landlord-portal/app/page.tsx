@@ -163,7 +163,7 @@ export default function Home() {
               <h3 className="question-line">{questionLine(r.question.multiple, r.question.rent)}</h3>
               <p className="meta">
                 Sent {formatWhen(r.createdAt)}
-                {r.result?.verifiedAt ? ` · Answered ${formatWhen(r.result.verifiedAt)}` : ` · Expires ${formatWhen(r.expiresAt)}`}
+                {r.status === "rejected" ? " · Declined" : r.result?.verifiedAt ? ` · Answered ${formatWhen(r.result.verifiedAt)}` : ` · Expires ${formatWhen(r.expiresAt)}`}
               </p>
               {links[r.id] && r.status !== "verified" && (
                 <p className="meta"><a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant link</a></p>
@@ -190,6 +190,14 @@ function formatWhen(iso: string) {
 }
 
 function Status({ r }: { r: VerificationRequest }) {
+  if (r.status === "rejected") {
+    return (
+      <div role="status">
+        <p className="verdict declined">Declined</p>
+        <p className="meta">Nothing financial was shared.</p>
+      </div>
+    );
+  }
   if (r.status === "verified" && r.result) {
     return r.result.answer
       ? <p className="verdict ok" role="status">Yes — meets the requirement</p>

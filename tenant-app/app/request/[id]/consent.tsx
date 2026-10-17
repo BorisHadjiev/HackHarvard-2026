@@ -12,9 +12,32 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
   const [reply, setReply] = useState<Reply | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const q = request.question;
-  const expired = recordedAnswer == null && request.status !== "verified" && Date.parse(request.expiresAt) < Date.now();
+  const declinedOnRecord = request.status === "rejected";
+  const expired = recordedAnswer == null && !declinedOnRecord && request.status !== "verified" && Date.parse(request.expiresAt) < Date.now();
   const alreadyAnswered = recordedAnswer == null && request.status === "verified";
-  const closed = expired || alreadyAnswered || recordedAnswer != null || declined || reply?.ok === true;
+  const closed = expired || alreadyAnswered || recordedAnswer != null || declinedOnRecord || declined || reply?.ok === true;
+
+  async function decline() {
+    setBusy(true);
+    setSendError(null);
+    try {
+      const res = await fetch("/api/decline", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ requestId: request.id, portal }),
+      });
+      const body = (await res.json().catch(() => null)) as { declined?: boolean } | null;
+      if (!res.ok || body?.declined !== true) {
+        setSendError("The decline didn't go through. No financial data was sent.");
+        return;
+      }
+      setDeclined(true);
+    } catch {
+      setSendError("Couldn't reach the landlord. The decline was not confirmed.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function approve() {
     setBusy(true);
@@ -82,17 +105,17 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
           </label>
           {sendError && <p className="banner bad" role="alert">{sendError}</p>}
           <div className="actions">
-            <button type="button" className="secondary" onClick={() => setDeclined(true)} disabled={busy}>Decline</button>
+            <button type="button" className="secondary" onClick={decline} disabled={busy}>Decline</button>
             <button type="button" onClick={approve} disabled={busy || !tenant}>{busy ? "Checking on this device…" : "Approve"}</button>
           </div>
-          <p className="hint">Approve sends only a yes or no. Decline sends nothing.</p>
+          <p className="hint">Approve sends only a yes or no. Decline tells them you declined and sends no financial data.</p>
         </section>
       )}
 
-      {declined && (
+      {(declined || declinedOnRecord) && (
         <section className="card" role="status">
-          <h2>You declined</h2>
-          <p className="empty">Nothing was sent to {request.requesterName}. They still see this request as waiting.</p>
+          <p className="verdict declined">Declined</p>
+          <p className="hint">You declined. {request.requesterName} can see that, and no financial data was sent.</p>
         </section>
       )}
 

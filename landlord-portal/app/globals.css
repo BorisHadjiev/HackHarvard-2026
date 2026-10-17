@@ -121,6 +121,7 @@ button:disabled { opacity: 0.5; cursor: default; }
 .verdict.ok { background: var(--ok-bg); color: var(--ok); }
 .verdict.bad { background: var(--bad-bg); color: var(--bad); }
 .verdict.wait { background: var(--wait); color: var(--muted); font-weight: 600; }
+.verdict.declined { background: #fff; color: var(--ink); border: 1px solid var(--ink); }
 .banner { border-radius: 8px; padding: 10px 12px; margin: 0 0 12px; font-size: 14px; }
 .banner.bad { background: var(--bad-bg); color: var(--bad); }
 .banner.ok { background: var(--ok-bg); color: var(--ok); }
