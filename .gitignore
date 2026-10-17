@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets: keys and API keys live here. Never commit them.
+.env
+.env*.local
+.keys/
+
+.DS_Store
+npm-debug.log*

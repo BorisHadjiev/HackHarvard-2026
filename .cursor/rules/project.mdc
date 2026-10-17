@@ -1,0 +1,8 @@
+---
+description: Need-to-Know project context and rules
+alwaysApply: true
+---
+
+Follow AGENTS.md at the repo root for architecture, the signed-claim format, owners and hard rules.
+Most important: the signed claim never contains dollar amounts; never hand-roll crypto (use `jose`);
+never commit `.env.local`; keep `npm test` and `npm run smoke` passing.
