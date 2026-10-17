@@ -4,8 +4,18 @@ import type { Deposit } from "../nessie";
 import { amountsFor, dateFor, daysBetween, DATE_PATTERN, dollarTokens, moneyTokens, near, parseDate, rangeFor, round2 } from "./text";
 import type { DocumentCheck, DocumentKind, ParsedDocument } from "./types";
 
+/** Government ID: driver's license / state ID front, or a passport data page (with or without a readable MRZ). */
+export function looksLikeIdCard(lines: string[]): boolean {
+  const text = lines.join("\n");
+  const idWords = /(driver'?s? ?licen[sc]e|identification card|identity card|\bpassport\b|\bid card\b)/i;
+  const fields = /(\bDOB\b|date of birth|\bBIRTH\b|\bEXP\b|expires|\bSEX\b|\bHGT\b|\bEYES\b|\bCLASS\b|nationality)/i;
+  const mrz = /^[A-Z0-9<]{30}$|^[A-Z0-9<]{44}$/m;
+  return (idWords.test(text) && fields.test(text)) || mrz.test(lines.map((l) => l.replace(/\s+/g, "")).join("\n"));
+}
+
 export function classify(lines: string[]): DocumentKind {
   const text = lines.join("\n");
+  if (looksLikeIdCard(lines)) return "id_card";
   if (/\bW-?2\b/i.test(text) && /wage and tax statement/i.test(text)) return "w2";
   if (/\b1040\b/.test(text) && /individual income tax return/i.test(text)) return "form_1040";
   if (/(earnings statement|pay ?stub|pay statement|payslip|pay slip)/i.test(text) || (/gross pay/i.test(text) && /net pay/i.test(text))) return "pay_stub";
@@ -268,6 +278,8 @@ export function parseDocument(lines: string[]): ParsedDocument {
     case "bank_statement": return parseBankStatement(lines);
     case "w2": return parseW2(lines);
     case "form_1040": return parseForm1040(lines);
+    // An ID proves age, not income. The income path leaves it out; the age path reads it with lib/documents/id-card.ts.
+    case "id_card": return { kind: "id_card", fields: {}, checks: [check("kind", "fail", "A government ID isn't an income document")] };
     default: return { kind: "unknown", fields: {}, checks: [check("kind", "fail", "Not a bank statement, pay stub, W-2 or Form 1040")] };
   }
 }

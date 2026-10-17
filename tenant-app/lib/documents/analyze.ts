@@ -6,6 +6,7 @@ import { parseDocument } from "./parse";
 import { tamperChecks } from "./tamper";
 import { daysBetween, round2 } from "./text";
 import type { DocumentDecision, DocumentReport, UploadedFile } from "./types";
+import { ageOn, readIdCard, type IdReadResult } from "./id-card";
 
 /** Fixed descriptions (never per tenant) so pooled landlords can't tell tenants apart by them. */
 export const DOCUMENT_METHOD = "income documents, annualized gross income";
@@ -114,4 +115,41 @@ export async function analyzeDocuments(files: UploadedFile[], opts: { bank?: Ban
   const reports: DocumentReport[] = [];
   for (const file of files.slice(0, MAX_FILES)) reports.push(await analyzeFile(file, { bank: opts.bank, now, trusted }));
   return decide(reports, opts.rent, opts.multiple);
+}
+
+// ---------------------------------------------------------------- age (government ID)
+
+export interface AgeDecision {
+  /** At least `minAge` on today's UTC date, computed from the first usable ID. */
+  meets: boolean;
+  /** False when no uploaded ID passed every check: nothing is signed then. */
+  usable: boolean;
+  reason?: string;
+  /** Reports carry only pass/fail and words: no date, age, name or issuer. */
+  reports: DocumentReport[];
+}
+
+/** Read every upload as an ID. Income documents fail the ID checks and are simply not usable here. */
+export async function analyzeIdDocuments(files: UploadedFile[], now = new Date()): Promise<IdReadResult[]> {
+  const results: IdReadResult[] = [];
+  for (const file of files.slice(0, MAX_FILES)) {
+    if (file.data.byteLength > MAX_FILE_BYTES) {
+      results.push({ report: { fileName: file.name, kind: "id_card", fields: {}, readMethod: "pdf_text", bankMatch: "not_checked", signature: "none", usable: false, checks: [{ id: "size", status: "fail", label: "File is larger than 10 MB" }] }, private: {} });
+      continue;
+    }
+    results.push(await readIdCard(file, now));
+  }
+  return results;
+}
+
+/** The yes/no. The dates in `results[].private` are read here and go no further. */
+export function decideAge(results: IdReadResult[], minAge: number, now = new Date()): AgeDecision {
+  const reports = results.map((r) => r.report);
+  const usable = results.find((r) => r.report.usable && r.private.dob);
+  if (!usable) {
+    const firstFail = reports.flatMap((r) => r.checks).find((c) => c.status === "fail");
+    return { meets: false, usable: false, reason: reports.length ? firstFail?.label ?? "The ID couldn't be read" : "No ID uploaded", reports };
+  }
+  const age = ageOn(usable.private.dob!, now);
+  return { meets: age !== undefined && age >= minAge, usable: true, reports };
 }
