@@ -19,7 +19,7 @@ export function classify(lines: string[]): DocumentKind {
   if (/\bW-?2\b/i.test(text) && /wage and tax statement/i.test(text)) return "w2";
   if (/\b1040\b/.test(text) && /individual income tax return/i.test(text)) return "form_1040";
   if (/(earnings statement|pay ?stub|pay statement|payslip|pay slip)/i.test(text) || (/gross pay/i.test(text) && /net pay/i.test(text))) return "pay_stub";
-  const statementWords = /(statement period|account statement|monthly statement|(?:beginning|opening|previous) balance|(?:ending|closing|new) balance)/i;
+  const statementWords = /(statement period|account statement|monthly statement|(?:beginning|opening|previous|starting) balance|(?:ending|closing|new) balance)/i;
   if (statementWords.test(text) && /(deposit|credit|addition)/i.test(text)) return "bank_statement";
   return "unknown";
 }
@@ -112,7 +112,11 @@ export function parsePayStub(lines: string[]): ParsedDocument {
 
 // ---------------------------------------------------------------- bank statement
 
-const TX_LINE = new RegExp(String.raw`^(\d{1,2}/\d{1,2}(?:/\d{2,4})?)\s+(.+?)\s+(\(?-?\$?[\d,]+\.\d{2}\)?)(?:\s+(\(?-?\$?[\d,]+\.\d{2}\)?))?\s*$`);
+const TX_AMOUNT = String.raw`\(?[+-]?\$?[\d,]+\.\d{2}\)?`;
+const TX_LINE = new RegExp(String.raw`^(${DATE_PATTERN})\s+(.+?)\s+(${TX_AMOUNT})(?:\s+(${TX_AMOUNT}))?\s*$`, "i");
+// Prefer an explicit category column over the unsigned amount or a misleading description.
+const MONEY_OUT = /\b(?:debit|withdrawal|pos)\b/i;
+const MONEY_IN = /\b(?:direct\s*deposit|deposit|credit)\b/i;
 /** Payroll-like deposits. "PPD" is the ACH code banks print on direct deposits from an employer. */
 const PAYROLL = /(payroll|direct\s*dep|dir\s*dep|salary|pay\s*roll|wages|ach\s*credit|\bppd\b)/i;
 
@@ -124,7 +128,7 @@ export function parseBankStatement(lines: string[]): ParsedDocument {
   const issuer = lines.find((l) => /\b(bank|credit union|savings|financial)\b/i.test(l) && !/statement period/i.test(l))?.split(/\s{3,}/)[0];
   const period = rangeFor(lines, /(?:statement\s*period|for\s*the\s*period|period)/i);
   const year = period.end ? Number(period.end.slice(0, 4)) : undefined;
-  const [opening] = amountsFor(lines, /(?:beginning|opening|previous)\s*balance/i).slice(-1);
+  const [opening] = amountsFor(lines, /(?:beginning|opening|previous|starting)\s*balance/i).slice(-1);
   const [closing] = amountsFor(lines, /(?:ending|closing|new)\s*balance/i).slice(-1);
   const [totalDeposits] = amountsFor(lines, /total\s*(?:deposits|credits|additions)/i, { nextLine: false });
   const [totalWithdrawals] = amountsFor(lines, /total\s*(?:withdrawals|debits|checks|subtractions)/i, { nextLine: false });
@@ -143,8 +147,12 @@ export function parseBankStatement(lines: string[]): ParsedDocument {
     const date = parseDate(m[1], year);
     const raw = moneyTokens(m[3])[0];
     if (!date || raw === undefined) continue;
-    const isDeposit = section === "deposits" || (section === "transactions" && raw > 0 && !/^\(|-/.test(m[3]));
-    if (isDeposit) deposits.push({ id: `stmt-${deposits.length}`, payer: m[2].trim(), amount: Math.abs(raw), date });
+    const columns = m[2].trim().split(/\s{3,}/);
+    const category = columns.length > 1 ? columns[columns.length - 1] : "";
+    const negative = raw < 0 || /^\(|-/.test(m[3]);
+    const isDeposit = !negative && (MONEY_OUT.test(category) ? false : MONEY_IN.test(category) ? true : section === "deposits" || (section === "transactions" && raw > 0));
+    const payer = category ? columns.slice(0, -1).join(" ") : m[2].trim();
+    if (isDeposit) deposits.push({ id: `stmt-${deposits.length}`, payer, amount: Math.abs(raw), date });
     else withdrawals += Math.abs(raw);
   }
   const depositSum = round2(deposits.reduce((s, d) => s + d.amount, 0));
@@ -157,10 +165,10 @@ export function parseBankStatement(lines: string[]): ParsedDocument {
       ? check("deposit_total", "pass", "Deposits add up to the stated total")
       : check("deposit_total", "fail", `Listed deposits add up to ${money(depositSum)}, but the statement says ${money(totalDeposits)}`));
   }
-  if (totalWithdrawals !== undefined && withdrawals > 0) {
+  if (totalWithdrawals !== undefined) {
     checks.push(near(withdrawals, totalWithdrawals)
       ? check("withdrawal_total", "pass", "Withdrawals add up to the stated total")
-      : check("withdrawal_total", "fail", "Listed withdrawals don't add up to the stated total"));
+      : check("withdrawal_total", "fail", `Listed withdrawals add up to ${money(withdrawals)}, but the statement says ${money(totalWithdrawals)}`));
   }
   if (opening !== undefined && closing !== undefined) {
     const expected = round2(opening + (totalDeposits ?? depositSum) - (totalWithdrawals ?? withdrawals));

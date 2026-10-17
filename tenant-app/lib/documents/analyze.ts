@@ -5,7 +5,7 @@ import { extractDocument, MAX_FILE_BYTES, MAX_FILES } from "./extract";
 import { parseDocument } from "./parse";
 import { tamperChecks } from "./tamper";
 import { daysBetween, round2 } from "./text";
-import type { DocumentDecision, DocumentReport, UploadedFile } from "./types";
+import type { DocumentDecision, DocumentReport, ExtractedText, UploadedFile } from "./types";
 import { ageOn, readIdCard, type IdReadResult } from "./id-card";
 
 /** Fixed descriptions (never per tenant) so pooled landlords can't tell tenants apart by them. */
@@ -19,16 +19,38 @@ export function trustedSigners(): string[] {
   return (process.env.TRUSTED_DOCUMENT_SIGNERS ?? "").split(",").map((s) => s.trim().toLowerCase().replace(/:/g, "")).filter(Boolean);
 }
 
-export async function analyzeFile(file: UploadedFile, opts: { bank?: BankData; now: Date; trusted: string[] }): Promise<DocumentReport> {
+export async function analyzeFileReports(file: UploadedFile, opts: { bank?: BankData; now: Date; trusted: string[] }): Promise<DocumentReport[]> {
   const base = { fileName: file.name, readMethod: "pdf_text" as const, bankMatch: "not_checked" as const, signature: "none" as const };
   if (file.data.byteLength > MAX_FILE_BYTES) {
-    return { ...base, kind: "unknown", fields: {}, usable: false, checks: [{ id: "size", status: "fail", label: "File is larger than 10 MB" }] };
+    return [{ ...base, kind: "unknown", fields: {}, usable: false, checks: [{ id: "size", status: "fail", label: "File is larger than 10 MB" }] }];
   }
   let extracted;
   try {
     extracted = await extractDocument(file, opts.trusted);
   } catch (err) {
-    return { ...base, kind: "unknown", fields: {}, usable: false, checks: [{ id: "read", status: "fail", label: (err as Error).message }] };
+    return [{ ...base, kind: "unknown", fields: {}, usable: false, checks: [{ id: "read", status: "fail", label: (err as Error).message }] }];
+  }
+  const segments: { page: number; lines: string[] }[] = [];
+  for (const [i, lines] of (extracted.pages?.length ? extracted.pages : [extracted.lines]).entries()) {
+    const header = lines.slice(0, 6).some((line) => /\b(?:account|monthly)\s+statement\b/i.test(line));
+    if (!segments.length || header) segments.push({ page: i + 1, lines: [...lines] });
+    else segments[segments.length - 1].lines.push(...lines);
+  }
+  return segments.map((segment) => reportExtracted(
+    segments.length > 1 ? `${file.name} (page ${segment.page})` : file.name,
+    { ...extracted, lines: segment.lines }, opts,
+  ));
+}
+
+/** Kept for callers analyzing a single statement; the upload pipeline reports every statement. */
+export async function analyzeFile(file: UploadedFile, opts: { bank?: BankData; now: Date; trusted: string[] }): Promise<DocumentReport> {
+  return (await analyzeFileReports(file, opts))[0];
+}
+
+function reportExtracted(fileName: string, extracted: ExtractedText, opts: { bank?: BankData; now: Date }): DocumentReport {
+  if (!extracted.lines.some((line) => line.trim())) {
+    return { fileName, kind: "unknown", fields: {}, readMethod: extracted.method, bankMatch: "not_checked", signature: "none", usable: false,
+      checks: [{ id: "read", status: "fail", label: "Couldn't read any text. Try a sharper photo or the original PDF." }] };
   }
   const parsed = parseDocument(extracted.lines);
   const tamper = tamperChecks(extracted);
@@ -52,7 +74,7 @@ export async function analyzeFile(file: UploadedFile, opts: { bank?: BankData; n
   return {
     ...parsed,
     checks,
-    fileName: file.name,
+    fileName,
     readMethod: extracted.method,
     ocrConfidence: extracted.ocrConfidence,
     bankMatch: cross.match,
@@ -98,7 +120,7 @@ export function decide(reports: DocumentReport[], rent: number, multiple: number
   }
 
   if (!counted.length) {
-    return { reports, counted: [], monthlyIncome: 0, meets: false, strength: null, reason: reports.length ? "None of the documents passed the checks" : "No documents" };
+    return { reports, counted: [], monthlyIncome: 0, meets: false, strength: null, reason: reports.flatMap((r) => r.checks).find((c) => c.status === "fail")?.label ?? (reports.length ? "None of the documents passed the checks" : "No documents") };
   }
   let strength: EvidenceStrength;
   if (counted.every((r) => r.signature === "trusted")) strength = "document_signed";
@@ -113,7 +135,7 @@ export async function analyzeDocuments(files: UploadedFile[], opts: { bank?: Ban
   const now = opts.now ?? new Date();
   const trusted = trustedSigners();
   const reports: DocumentReport[] = [];
-  for (const file of files.slice(0, MAX_FILES)) reports.push(await analyzeFile(file, { bank: opts.bank, now, trusted }));
+  for (const file of files.slice(0, MAX_FILES)) reports.push(...await analyzeFileReports(file, { bank: opts.bank, now, trusted }));
   return decide(reports, opts.rent, opts.multiple);
 }
 

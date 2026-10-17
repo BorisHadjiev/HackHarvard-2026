@@ -47,6 +47,8 @@ export type ReadMethod = "pdf_text" | "pdf_ocr" | "image_ocr";
 
 export interface ExtractedText {
   lines: string[];
+  /** PDF pages in order, including blank pages, so separate statements stay separate. */
+  pages?: string[][];
   method: ReadMethod;
   /** 0-100, OCR only. */
   ocrConfidence?: number;

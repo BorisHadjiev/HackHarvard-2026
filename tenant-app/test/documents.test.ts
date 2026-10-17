@@ -173,3 +173,143 @@ test("a photo of a pay stub is read on this device with OCR", { timeout: 120_000
   const { stopOcr } = await import("../lib/documents/ocr");
   await stopOcr();
 });
+
+// Reproduces the scanner-fixes.md text layer, including its column spacing.
+const demoStatementLines = (second = false, complete = true, month = "Sep") => {
+  const lines = `FIRST NATIONAL BANK   ACCOUNT STATEMENT
+Member FDIC | Equal Housing Lender   Statement Period: ${month} 01, 2026 – ${month} ${month === "Sep" ? "30" : "31"}, 2026
+Account Holder: Demo User   Account Number: ********4821
+Address: 123 Harbor View Way, Apt 4B   Primary Phone: (555) 019-2831
+Account Type: Preferred Checking   Branch: Downtown Financial Center
+STARTING BALANCE   TOTAL DEPOSITS   TOTAL WITHDRAWALS   ENDING BALANCE
+$3,120.00   $5,800.00   $4,150.00   $4,770.00
+Account Activity & Deposits
+Date   Description   Category   Amount
+${month} 03, 2026   GROCERY MARKET #4021   POS Debit   -$142.50
+${month} 08, 2026   CITY UTILITIES WATER & POWER   ACH Withdrawal   -$118.20
+${month} 15, 2026   ACME CORP PAYROLL DIRECT DEP   Direct Deposit   +$2,900.00
+${month} 20, 2026   STREAMING SERVICE MONTHLY   Recurring Debit   -$15.99
+${month} 25, 2026   AUTO INSURANCE MONTHLY PREMIUM   ACH Withdrawal   -$185.00
+${month} ${month === "Sep" ? "30" : "31"}, 2026   ACME CORP PAYROLL DIRECT DEP   Direct Deposit   +$2,900.00
+Total Direct Deposits   $5,800.00
+First National Bank — Demo Statement   Page ${second ? "2" : "1"} of 2`.split("\n");
+  if (second) {
+    for (let i = 0; i < lines.length; i++) lines[i] = lines[i]
+      .replaceAll("$3,120.00", "$6,450.00").replaceAll("$5,800.00", "$8,800.00")
+      .replaceAll("$4,150.00", "$5,200.00").replaceAll("$4,770.00", "$10,050.00")
+      .replaceAll("ACME CORP", "TECH CORP").replaceAll("$2,900.00", "$4,400.00")
+      .replaceAll("$142.50", "$200.00").replaceAll("$118.20", "$150.00")
+      .replaceAll("$15.99", "$15.59").replaceAll("$185.00", "$240.00");
+  }
+  if (complete) lines.splice(-2, 0, `${month} 26, 2026   RENT PAYMENT   ACH Withdrawal   -$${second ? "4,594.41" : "3,688.31"}`);
+  return lines;
+};
+
+async function statementPdf(pages: string[][]) {
+  const { PDFDocument, StandardFonts } = await import("pdf-lib");
+  const pdf = await PDFDocument.create();
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  for (const lines of pages) {
+    const page = pdf.addPage([900, 792]);
+    lines.forEach((line, i) => {
+      let x = 30;
+      for (const cell of line.split(/\s{3,}/)) {
+        page.drawText(cell, { x, y: 750 - i * 20, size: 10, font });
+        x += font.widthOfTextAtSize(cell, 10) + 25;
+      }
+    });
+  }
+  return { name: "name.pdf", type: "application/pdf", data: await pdf.save({ useObjectStreams: false }) };
+}
+
+test("separate September statements in one PDF each pass, including all totals", async () => {
+  const { analyzeDocuments } = await import("../lib/documents/analyze");
+  const file = await statementPdf([demoStatementLines(), demoStatementLines(true)]);
+  const { extractDocument } = await import("../lib/documents/extract");
+  const text = await extractDocument(file, []);
+  assert.equal(text.pages?.length, 2);
+  const d = await analyzeDocuments([file], { now, rent: 2400, multiple: 3 });
+  assert.deepEqual(d.reports.map((r) => r.fileName), ["name.pdf (page 1)", "name.pdf (page 2)"]);
+  d.reports.forEach((r, i) => {
+    assert.deepEqual(failed(r), [], JSON.stringify(r));
+    assert.equal(r.usable, true);
+    assert.equal(r.deposits?.length, 2);
+    assert.ok(Math.abs(r.monthlyIncome! - [5800, 8800][i]) / [5800, 8800][i] < 0.02);
+    assert.equal(r.fields.openingBalance, [3120, 6450][i]);
+    assert.equal(r.fields.closingBalance, [4770, 10050][i]);
+    for (const id of ["deposit_total", "withdrawal_total", "balance"]) assert.equal(r.checks.find((c) => c.id === id)?.status, "pass");
+  });
+});
+
+test("complete October statements still fail only for being future-dated", async () => {
+  const { analyzeDocuments } = await import("../lib/documents/analyze");
+  const d = await analyzeDocuments([await statementPdf([demoStatementLines(false, true, "Oct"), demoStatementLines(true, true, "Oct")])], { now, rent: 2400, multiple: 3 });
+  for (const r of d.reports) {
+    assert.deepEqual(failed(r), ["age"]);
+    assert.match(r.checks.find((c) => c.status === "fail")!.label, /Dated in the future \(2026-10-31\)/);
+  }
+  assert.match(d.reason!, /Dated in the future/);
+});
+
+test("incomplete extracted withdrawal rows fail and name listed and stated totals", async () => {
+  const { analyzeDocuments } = await import("../lib/documents/analyze");
+  const d = await analyzeDocuments([await statementPdf([demoStatementLines(false, false), demoStatementLines(true, false)])], { now, rent: 2400, multiple: 3 });
+  d.reports.forEach((r, i) => {
+    assert.deepEqual(failed(r), ["withdrawal_total"]);
+    const label = r.checks.find((c) => c.id === "withdrawal_total")!.label;
+    assert.ok(label.includes(["$461.69", "$605.59"][i]), label);
+    assert.ok(label.includes(["$4,150.00", "$5,200.00"][i]), label);
+    assert.equal(r.usable, false);
+  });
+  assert.equal(d.reason, d.reports[0].checks.find((c) => c.status === "fail")!.label);
+});
+
+test("short month dates and explicit categories distinguish unsigned debits from credits", async () => {
+  const { parseBankStatement } = await import("../lib/documents/parse");
+  const lines = demoStatementLines().map((line) => line.replace(/Sep (\d+), 2026(?=   )/, "Sep $1").replace(/-\$/g, "$"));
+  // Even a description containing 'credit' cannot overrule a debit category.
+  lines[9] = lines[9].replace("GROCERY MARKET #4021", "CREDIT CARD PAYMENT");
+  const r = parseBankStatement(lines);
+  assert.equal(r.deposits?.length, 2);
+  assert.deepEqual(r.deposits?.map((d) => d.date), ["2026-09-15", "2026-09-30"]);
+  assert.deepEqual(r.checks.filter((c) => c.status === "fail"), []);
+  assert.equal(parseDate("Oct 3", 2026), "2026-10-03");
+  assert.equal(parseDate("Oct 3"), undefined);
+  assert.deepEqual(moneyTokens("+$2,900.00 -$142.50"), [2900, -142.5]);
+  assert.ok(cleanOcrLine("TOTAL DEPOSITS   ENDING BALANCE").includes("   "));
+});
+
+test("a missing withdrawal row is rejected even when none of the withdrawals parsed", async () => {
+  const { parseBankStatement } = await import("../lib/documents/parse");
+  const lines = demoStatementLines().filter((l) => !/Withdrawal|Debit/.test(l));
+  const r = parseBankStatement(lines);
+  assert.ok(r.checks.some((c) => c.id === "withdrawal_total" && c.status === "fail" && c.label.includes("$0.00")));
+});
+
+test("a continuation page without a new statement header stays with its statement", async () => {
+  const { analyzeDocuments } = await import("../lib/documents/analyze");
+  const lines = demoStatementLines();
+  const split = 12;
+  const d = await analyzeDocuments([await statementPdf([lines.slice(0, split), lines.slice(split)])], { now, rent: 2400, multiple: 3 });
+  assert.equal(d.reports.length, 1);
+  assert.equal(d.reports[0].fileName, "name.pdf");
+  assert.deepEqual(failed(d.reports[0]), []);
+});
+
+test("a blank PDF explains how to obtain readable text", async () => {
+  const r = await analyze(await statementPdf([[]]));
+  assert.equal(r.usable, false);
+  assert.equal(decide([r], 2400, 3).reason, "Couldn't read any text. Try a sharper photo or the original PDF.");
+});
+
+test("sample statements use a completed calendar month, including across year boundaries", () => {
+  for (const date of ["2026-10-17", "2026-01-01", "2024-03-01"]) {
+    const today = new Date(`${date}T12:00:00Z`);
+    const statement = demoDocumentData(today).mayaStatement;
+    assert.equal(statement.periodStart.slice(8), "01");
+    assert.ok(statement.periodEnd < date);
+    const next = new Date(Date.parse(statement.periodEnd) + 86_400_000).toISOString().slice(0, 10);
+    assert.equal(next, date.slice(0, 7) + "-01");
+    for (const tx of [...statement.deposits, ...statement.withdrawals]) assert.ok(tx.date >= statement.periodStart && tx.date <= statement.periodEnd);
+  }
+});
