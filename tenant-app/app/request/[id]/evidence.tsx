@@ -56,6 +56,7 @@ export function DocumentReport({ decision }: { decision: Decision }) {
               <b>{d.kind}</b>{d.issuer ? ` · ${d.issuer}` : ""}{d.date ? ` · ${d.date}` : ""}
               <span className={d.counted ? "pill ok" : d.usable ? "pill" : "pill bad"}>{d.counted ? "Counts" : d.usable ? "Not needed" : "Not used"}</span>
             </p>
+            {!d.usable && <p className="banner bad">{d.checks.find((c) => c.status === "fail")?.label}</p>}
             <p className="hint">{d.fileName}{d.monthlyIncome ? ` · supports ${usd(d.monthlyIncome)}/month` : ""}</p>
             <ul className="plain checks">
               {d.checks.map((c, i) => <li key={c.id + i} className={`check ${c.status}`}><span aria-hidden>{ICON[c.status]}</span> {c.label}</li>)}
