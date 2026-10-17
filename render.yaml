@@ -3,6 +3,7 @@ services:
   - type: web
     name: need-to-know
     runtime: node
+    plan: free # free plan sleeps after ~15 min idle; switch to "starter" (paid) for judging if needed
     buildCommand: npm ci && npm run build -w landlord-portal
     startCommand: npm run start -w landlord-portal
     healthCheckPath: /api/requests
