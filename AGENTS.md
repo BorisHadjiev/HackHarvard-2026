@@ -25,6 +25,11 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
 The portal checks, in order: signature, issuer, audience, expiry, nonce matches the open request, nonce not
 already used, build hash trusted (when `TRUSTED_BUILD_HASHES` is set), question matches.
 
+## Unlinkability (planned collusion test, see README)
+Two landlords pooling their claims must not be able to tell they came from the same tenant. So: `sub` is
+pairwise per audience; the signing key is shared by all tenants of a build (never per-tenant); don't add
+any per-tenant field (device id, account id, exact timestamps, IP) to the claim or the portal's storage.
+
 ## Hard rules
 1. The signed claim and anything sent to the portal must NEVER contain dollar amounts, balances, deposits or documents.
 2. Never implement cryptography by hand. Use `jose` (and node:crypto / WebCrypto for hashing/HMAC only).

@@ -32,6 +32,7 @@ export async function generateSigningKeys(): Promise<{ privateJwk: JWK; publicJw
 /** Sign a claim with the tenant app's private key. Returns a compact JWS string. */
 export async function signClaim(payload: ClaimPayload, privateJwk: JWK, now = new Date()): Promise<string> {
   const key = await importJWK(privateJwk, CLAIM_ALG);
+  // TODO(Sam, collusion test): round iat to the hour so pooled claims can't be linked by exact timing.
   const iat = Math.floor(now.getTime() / 1000);
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: CLAIM_ALG, typ: "JWT" })
