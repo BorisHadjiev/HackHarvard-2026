@@ -1,0 +1,1835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Requests · Need-to-Know</title>
+<style>
+:root{
+  --bg: oklch(98% 0.004 240);
+  --surface: oklch(100% 0 0);
+  --fg: oklch(20% 0.02 240);
+  --muted: oklch(50% 0.018 240);
+  --border: oklch(90% 0.006 240);
+  --accent: oklch(56% 0.12 170);
+  --font-display: 'Söhne', 'Avenir Next', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
+  --accent-ink: oklch(42% 0.10 170);
+  --accent-strong: oklch(47% 0.115 170);
+  --accent-hover: oklch(42% 0.105 170);
+  --accent-soft: oklch(96.2% 0.028 170);
+  --accent-line: oklch(88% 0.05 170);
+  --muted-strong: oklch(38% 0.018 240);
+
+  --warm-soft: oklch(97.4% 0.014 82);
+  --warm-line: oklch(91.5% 0.024 82);
+  --warm-ink: oklch(37% 0.035 72);
+
+  --success: oklch(50% 0.10 158);
+  --success-ink: oklch(35% 0.075 158);
+  --success-soft: oklch(96% 0.028 158);
+  --success-line: oklch(88% 0.055 158);
+
+  --pending-ink: oklch(43% 0.09 72);
+  --pending-soft: oklch(96.4% 0.035 80);
+  --pending-line: oklch(89% 0.06 80);
+
+  --danger: oklch(52% 0.15 27);
+  --danger-ink: oklch(42% 0.14 27);
+  --danger-soft: oklch(96.2% 0.023 27);
+  --danger-line: oklch(90% 0.045 27);
+
+  --notmet-ink: oklch(43% 0.09 45);
+  --notmet-soft: oklch(96.2% 0.028 55);
+  --notmet-line: oklch(89% 0.05 55);
+
+  --expired-ink: oklch(45% 0.02 240);
+  --expired-soft: oklch(95.2% 0.006 240);
+
+  --shadow-sm: 0 1px 2px oklch(20% 0.02 240 / .05);
+  --shadow-md: 0 2px 4px oklch(20% 0.02 240 / .04), 0 12px 32px oklch(20% 0.02 240 / .07);
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --radius-sm: 12px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  margin:0;min-height:100dvh;color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;
+  background:radial-gradient(1100px 560px at 88% -14%, oklch(96.5% 0.028 170 / .5), transparent 62%), var(--bg);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:inherit}
+img,svg{display:block}
+h1,h2,h3,p,ul,ol,dl,dd{margin:0}
+ul,ol{padding:0;list-style:none}
+.icon{width:18px;height:18px;flex:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skip{position:fixed;top:10px;left:10px;z-index:200;background:var(--fg);color:oklch(100% 0 0);padding:10px 14px;border-radius:10px;transform:translateY(-160%);transition:transform .18s ease;text-decoration:none;font-size:13px}
+.skip:focus{transform:none}
+:focus-visible{outline:2px solid var(--accent-strong);outline-offset:3px}
+::selection{background:oklch(86% 0.07 170);color:var(--fg)}
+
+.app{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100dvh}
+.sidebar{min-height:100dvh;display:flex;flex-direction:column;padding:24px 18px 18px;background:oklch(100% 0 0 / .86);border-right:1px solid var(--border);backdrop-filter:blur(14px);z-index:40}
+.sidebar-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;text-decoration:none;color:var(--fg);border-radius:10px}
+.brand-mark{width:36px;height:36px;border-radius:11px;background:var(--accent-strong);color:oklch(99% 0.004 170);display:grid;place-items:center;flex:none;box-shadow:0 2px 7px oklch(47% 0.11 170 / .25)}
+.brand-mark .icon{width:20px;height:20px}
+.brand-text{display:flex;flex-direction:column;gap:2px;font-family:var(--font-display);font-size:15.5px;font-weight:600;letter-spacing:-.022em;line-height:1.08}
+.brand-text small{font-family:var(--font-body);font-size:10.5px;font-weight:500;letter-spacing:0;color:var(--muted)}
+.mobile-tools{display:none;align-items:center;gap:2px}
+.role-switch{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;margin:20px 0 16px;background:oklch(96.6% 0.005 240);border:1px solid var(--border);border-radius:13px}
+.role-switch button{min-height:44px;border:0;border-radius:9px;background:transparent;color:var(--muted-strong);font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .16s ease,color .16s ease,box-shadow .16s ease}
+.role-switch button .icon{width:15px;height:15px;color:var(--muted)}
+.role-switch button:hover{color:var(--fg)}
+.role-switch button.is-active{background:var(--surface);color:var(--fg);box-shadow:var(--shadow-sm),inset 0 0 0 1px var(--border)}
+.role-switch button.is-active .icon{color:var(--accent-ink)}
+.workspace-card{display:flex;align-items:center;gap:10px;min-width:0;padding:10px;margin-bottom:16px;background:oklch(98.4% 0.006 240);border:1px solid var(--border);border-radius:14px}
+.workspace-card .avatar{width:36px;height:36px;border-radius:11px;font-size:12px;background:var(--warm-soft);color:var(--warm-ink);border:1px solid var(--warm-line);box-shadow:none}
+.workspace-card strong{display:block;font-size:13px;font-weight:600;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.workspace-card span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tenant-link-card{display:grid;gap:5px;padding:14px;margin-bottom:16px;background:var(--warm-soft);border:1px solid var(--warm-line);border-radius:14px;color:var(--warm-ink)}
+.tenant-link-card .tl-top{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.065em;text-transform:uppercase}
+.tenant-link-card .tl-top .icon{width:14px;height:14px}
+.tenant-link-card strong{font-family:var(--font-mono);font-size:13px;font-weight:500;letter-spacing:-.02em}
+.tenant-link-card>span{font-size:11.5px;opacity:.82}
+.side-nav{display:grid;gap:4px}
+.nav-link{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:0 11px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted-strong);font-size:13.5px;font-weight:600;text-align:left;text-decoration:none;transition:background .16s ease,color .16s ease,border-color .16s ease}
+.nav-link .icon{width:17px;height:17px;color:var(--muted);transition:color .16s ease}
+.nav-link:hover{background:oklch(97.4% 0.006 240);color:var(--fg)}
+.nav-link:hover .icon{color:var(--fg)}
+.nav-link.is-active{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
+.nav-link.is-active .icon{color:var(--accent-ink)}
+.nav-badge{margin-left:auto;display:grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted);font-size:10.5px;font-weight:700}
+.side-foot{display:grid;gap:3px;margin-top:auto;padding-top:16px}
+.side-foot .nav-link{min-height:44px;color:var(--muted);font-size:12.5px;font-weight:500}
+.side-foot .nav-link:hover{color:var(--fg)}
+.side-foot .nav-link.danger:hover{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger-ink)}
+.demo-note{margin:8px 0 4px;padding:11px 12px;border:1px dashed var(--border);border-radius:11px;color:var(--muted);font-size:11px;line-height:1.5}
+.demo-note strong{display:flex;align-items:center;gap:5px;color:var(--muted-strong);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.demo-note strong::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.main{min-width:0;padding:38px 40px 56px}
+.main-inner{max-width:1160px;margin:0 auto}
+.view{animation:rise .3s ease both}
+.app-foot{display:flex;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-top:34px;padding-top:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11.5px;line-height:1.5}
+
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:26px}
+.eyebrow{display:flex;align-items:center;gap:8px;margin-bottom:9px;color:var(--muted-strong);font-size:11px;font-weight:700;letter-spacing:.085em;text-transform:uppercase}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.page-head h1{font-family:var(--font-display);font-size:clamp(30px,3.2vw,38px);font-weight:600;letter-spacing:-.035em;line-height:1.04;text-wrap:balance}
+.lede{max-width:62ch;margin-top:10px;color:var(--muted);font-size:14.5px;line-height:1.55;text-wrap:pretty}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 18px;border:1px solid transparent;border-radius:12px;font-size:14px;font-weight:600;line-height:1;text-decoration:none;transition:background .16s ease,color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .16s ease}
+.btn .icon{width:16px;height:16px}
+.btn-primary{background:var(--accent-strong);color:oklch(99% 0.004 170);box-shadow:0 2px 6px oklch(47% 0.11 170 / .22)}
+.btn-primary:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 12px oklch(47% 0.11 170 / .24)}
+.btn-primary:active{transform:translateY(0)}
+.btn-primary:disabled{background:oklch(88% 0.008 240);color:oklch(50% 0.01 240);box-shadow:none;cursor:not-allowed;transform:none}
+.btn-ghost{background:var(--surface);border-color:var(--border);color:var(--fg)}
+.btn-ghost:hover{background:oklch(97.5% 0.005 240);border-color:oklch(84% 0.008 240)}
+.btn-ghost.danger-text{color:var(--danger-ink)}
+.btn-ghost.danger-text:hover{background:var(--danger-soft);border-color:var(--danger-line)}
+.btn-danger{background:var(--danger);color:oklch(100% 0 0)}
+.btn-danger:hover{background:oklch(45% 0.15 27)}
+.icon-btn{display:grid;place-items:center;width:44px;height:44px;padding:0;border:1px solid var(--border);border-radius:11px;background:var(--surface);color:var(--muted-strong);transition:background .16s ease,color .16s ease,border-color .16s ease}
+.icon-btn:hover{background:oklch(97.2% 0.006 240);color:var(--fg);border-color:oklch(84% 0.008 240)}
+.icon-btn .icon{width:17px;height:17px}
+.text-link{display:inline-flex;align-items:center;gap:5px;min-height:44px;padding:0;border:0;background:none;color:var(--accent-ink);font-size:12.5px;font-weight:600;text-decoration:none;transition:color .16s ease}
+.text-link .icon{width:14px;height:14px}
+.text-link:hover{color:var(--accent-hover);text-decoration:underline;text-underline-offset:3px}
+
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-sm);overflow:hidden}
+.metric{padding:20px 22px;border-left:1px solid var(--border)}
+.metric:first-child{border-left:0}
+.metric-label{color:var(--muted);font-size:12px;font-weight:600}
+.metric-value{margin:7px 0 5px;font-family:var(--font-display);font-size:30px;font-weight:600;line-height:1;letter-spacing:-.035em;font-variant-numeric:tabular-nums}
+.metric-note{color:var(--muted);font-size:11.5px;line-height:1.35}
+.ledger{display:flex;align-items:center;flex-wrap:wrap;gap:9px 20px;margin-bottom:26px;padding:13px 17px;background:var(--warm-soft);border:1px solid var(--warm-line);border-radius:15px;color:var(--warm-ink)}
+.ledger-label{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.ledger-label .icon{width:15px;height:15px}
+.ledger-items{display:flex;flex-wrap:wrap;gap:7px 18px;font-size:12px;line-height:1.4}
+.ledger-items span{position:relative;padding-left:12px}
+.ledger-items span::before{content:"";position:absolute;left:0;top:50%;width:4px;height:4px;margin-top:-2px;border-radius:50%;background:oklch(72% 0.05 82)}
+
+.banner{display:flex;align-items:flex-start;gap:11px;padding:13px 15px;margin-bottom:18px;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm);animation:rise .28s ease both}
+.banner>.icon{width:19px;height:19px;margin-top:1px}
+.banner .banner-copy{min-width:0;flex:1}
+.banner strong{display:block;font-size:13.5px;font-weight:600;line-height:1.3}
+.banner p{margin-top:2px;color:var(--muted);font-size:12.5px;line-height:1.45;text-wrap:pretty}
+.banner .banner-action{flex:none;min-height:44px;white-space:nowrap}
+.banner .icon-btn{flex:none;width:44px;height:44px;border:0;background:transparent;margin:-8px -8px -8px 0;color:inherit;opacity:.72}
+.banner .icon-btn:hover{background:oklch(100% 0 0 / .35);opacity:1}
+.banner.success{background:var(--success-soft);border-color:var(--success-line);color:var(--success-ink)}
+.banner.success p{color:var(--success-ink);opacity:.88}
+.banner.warm{background:var(--warm-soft);border-color:var(--warm-line);color:var(--warm-ink)}
+.banner.warm p{color:var(--warm-ink);opacity:.86}
+.banner.danger{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger-ink)}
+.banner.danger p{color:var(--danger-ink);opacity:.88}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:22px;box-shadow:var(--shadow-sm);overflow:hidden}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px 24px 15px}
+.panel-title{display:flex;align-items:center;gap:9px}
+.panel-title h2{font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-.025em;line-height:1.2}
+.panel-count{display:grid;place-items:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:oklch(95.8% 0.006 240);color:var(--muted);font-size:11px;font-weight:700;letter-spacing:0}
+.panel-sub{margin-top:3px;color:var(--muted);font-size:12.5px}
+.search{position:relative;min-width:250px;flex:0 1 280px}
+.search .icon{position:absolute;left:13px;top:50%;width:16px;height:16px;color:var(--muted);transform:translateY(-50%);pointer-events:none}
+.search input{width:100%;height:44px;padding:0 36px 0 38px;border:1px solid var(--border);border-radius:11px;background:oklch(98.6% 0.003 240);color:var(--fg);font-size:13px;transition:background .16s ease,border-color .16s ease}
+.search input::placeholder{color:oklch(52% 0.015 240)}
+.search input:hover{background:var(--surface)}
+.search input:focus{outline:2px solid var(--accent-strong);outline-offset:1px;background:var(--surface);border-color:var(--accent-line)}
+.search .clear-search{position:absolute;right:0;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;background:transparent;color:var(--muted);display:grid;place-items:center;border-radius:9px}
+.search .clear-search:hover{color:var(--fg);background:oklch(96% 0.005 240)}
+.search .clear-search[hidden]{display:none}
+.search input::-webkit-search-cancel-button,.search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
+#rentInput::-webkit-outer-spin-button,#rentInput::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#rentInput{-moz-appearance:textfield;appearance:textfield}
+.search .clear-search .icon{position:static;transform:none;width:14px;height:14px;pointer-events:none}
+.filters{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:0 24px 14px}
+.filter{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted-strong);font-size:12px;font-weight:600;transition:background .16s ease,color .16s ease,border-color .16s ease;white-space:nowrap}
+.filter:hover{background:oklch(97.4% 0.006 240);border-color:oklch(84% 0.008 240);color:var(--fg)}
+.filter .count{display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:oklch(96.2% 0.005 240);color:var(--muted-strong);font-size:10px;font-weight:700}
+.filter.is-active{background:var(--accent-strong);border-color:var(--accent-strong);color:oklch(100% 0 0)}
+.filter.is-active .count{background:oklch(100% 0 0 / .17);color:oklch(100% 0 0)}
+.filter.is-active:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:oklch(100% 0 0)}
+.list-head{display:grid;grid-template-columns:minmax(190px,1.6fr) 92px 112px 96px 142px 24px;gap:14px;align-items:center;padding:9px 24px 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);color:var(--muted);font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.request-row{display:grid;grid-template-columns:minmax(190px,1.6fr) 92px 112px 96px 142px 24px;gap:14px;align-items:center;padding:15px 24px;border-bottom:1px solid var(--border);text-decoration:none;transition:background .16s ease}
+.request-row:last-child{border-bottom:0}
+.request-row:hover{background:oklch(97.7% 0.009 170)}
+.request-row:focus-visible{outline-offset:-3px}
+.meta-cells{display:contents}
+.who{display:flex;align-items:center;gap:11px;min-width:0}
+.avatar{display:grid;place-items:center;flex:none;width:38px;height:38px;border:1px solid oklch(90% 0.025 82);border-radius:12px;background:var(--warm-soft);color:var(--warm-ink);font-family:var(--font-display);font-size:12.5px;font-weight:600;letter-spacing:.01em}
+.who-text{min-width:0;display:flex;flex-direction:column;gap:1px}
+.who .name{font-size:13.5px;font-weight:600;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who .unit{color:var(--muted);font-size:11.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell{min-width:0}
+.cell .m-label{display:none}
+.cell .value{display:block;font-size:13px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cell .value small{color:var(--muted);font-size:10.5px;font-weight:400}
+.cell .value.soft{color:var(--muted-strong);font-weight:500}
+.status-cell{display:flex;align-items:center;gap:8px}
+.chevron{display:grid;place-items:center;color:oklch(55% 0.012 240);transition:color .16s ease,transform .16s ease}
+.chevron .icon{width:16px;height:16px}
+.request-row:hover .chevron{color:var(--accent-ink);transform:translateX(2px)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid transparent;border-radius:999px;font-size:11.5px;font-weight:600;line-height:1;white-space:nowrap}
+.chip::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.chip.pending{background:var(--pending-soft);border-color:var(--pending-line);color:var(--pending-ink)}
+.chip.approved{background:var(--success-soft);border-color:var(--success-line);color:var(--success-ink)}
+.chip.notmet{background:var(--notmet-soft);border-color:var(--notmet-line);color:var(--notmet-ink)}
+.chip.declined{background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger-ink)}
+.chip.expired{background:var(--expired-soft);border-color:var(--border);color:var(--expired-ink)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:var(--surface);color:var(--muted-strong);font-size:11px;font-weight:600;line-height:1.1;white-space:nowrap}
+.pill .icon{width:13px;height:13px}
+.panel-foot{display:flex;align-items:flex-start;gap:7px;padding:13px 24px;border-top:1px solid var(--border);background:oklch(98.7% 0.003 240);color:var(--muted);font-size:11px;line-height:1.45}
+.panel-foot .icon{width:14px;height:14px;margin-top:1px;flex:none}
+.empty{padding:52px 24px;text-align:center}
+.empty-mark{width:54px;height:54px;margin:0 auto 14px;border:1px dashed var(--accent-line);border-radius:50%;display:grid;place-items:center;color:var(--accent-ink);background:var(--accent-soft)}
+.empty-mark .icon{width:22px;height:22px}
+.empty h3{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-.02em}
+.empty p{max-width:38ch;margin:6px auto 16px;color:var(--muted);font-size:12.5px;line-height:1.5;text-wrap:pretty}
+
+.detail-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.back{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-left:-8px;padding:0 8px;border-radius:9px;color:var(--muted-strong);font-size:12.5px;font-weight:600;text-decoration:none}
+.back:hover{background:oklch(97.4% 0.006 240);color:var(--fg)}
+.back .icon{width:15px;height:15px}
+.crumb-ref{color:var(--muted);font-family:var(--font-mono);font-size:11px;letter-spacing:-.02em}
+.detail-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:24px}
+.identity{display:flex;align-items:center;gap:15px;min-width:0}
+.avatar-lg{width:54px;height:54px;border-radius:17px;font-size:17px}
+.identity-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.identity h1{font-family:var(--font-display);font-size:clamp(27px,3vw,34px);font-weight:600;letter-spacing:-.035em;line-height:1.05}
+.identity .meta{display:flex;align-items:center;flex-wrap:wrap;gap:5px 8px;margin-top:4px;color:var(--muted);font-size:12.5px}
+.identity .meta .sep{color:oklch(72% 0.01 240)}
+.detail-side-note{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;padding-bottom:5px}
+.detail-side-note .icon{width:15px;height:15px}
+.detail-grid{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(300px,1fr);gap:20px;align-items:start}
+.stack{display:grid;gap:18px;min-width:0}
+.detail-aside{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;box-shadow:var(--shadow-sm)}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.card h2{font-family:var(--font-display);font-size:21px;font-weight:600;letter-spacing:-.028em;line-height:1.2;text-wrap:balance}
+.card h3{font-family:var(--font-display);font-size:16.5px;font-weight:600;letter-spacing:-.02em;line-height:1.25}
+.card-sub{margin-top:4px;color:var(--muted);font-size:12.5px;line-height:1.5;text-wrap:pretty}
+.focus-card{position:relative;isolation:isolate;overflow:hidden;padding:28px;background:linear-gradient(180deg, oklch(100% 0 0), oklch(98.5% 0.014 170));border:1px solid var(--accent-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-md)}
+.focus-card::after{content:"";position:absolute;z-index:-1;top:-90px;right:-70px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle, oklch(94% 0.04 170 / .7), transparent 70%)}
+.hero-split{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+.hero-copy{max-width:52ch;margin-top:10px;color:var(--muted);font-size:13.5px;line-height:1.6;text-wrap:pretty}
+.hero-meta{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;margin-top:15px;color:var(--muted);font-size:12px}
+.hero-meta .meta-item{display:inline-flex;align-items:center;gap:5px}
+.hero-meta .icon{width:13px;height:13px}
+.hero-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:20px}
+.seal-wrap{display:flex;flex-direction:column;align-items:center;gap:7px;flex:none;padding-top:2px}
+.seal-ring{position:relative;display:grid;place-items:center;width:86px;height:86px;border:1px dashed var(--accent-line);border-radius:50%;background:oklch(100% 0 0 / .72);color:var(--accent-ink)}
+.seal-ring::before{content:"";position:absolute;inset:8px;border:1px solid oklch(92% 0.03 170);border-radius:50%}
+.seal-ring .icon{width:28px;height:28px;stroke-width:1.5}
+.seal-caption{color:var(--muted-strong);font-size:10.5px;font-weight:600;text-align:center;line-height:1.3}
+.receipt{position:relative;overflow:hidden;padding:28px;background:var(--warm-soft);border:1px solid var(--warm-line);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm)}
+.receipt::before{content:"";position:absolute;inset:11px;border:1px dashed oklch(88.5% 0.025 82);border-radius:14px;pointer-events:none}
+.receipt>*{position:relative;z-index:1}
+.receipt-head{display:flex;align-items:flex-start;gap:18px}
+.seal{position:relative;display:grid;place-items:center;flex:none;width:72px;height:72px;border-radius:50%;background:var(--success);color:oklch(100% 0 0);box-shadow:0 8px 20px oklch(50% 0.10 158 / .2);animation:sealIn .5s cubic-bezier(.2,.9,.25,1.1) both}
+.seal::before{content:"";position:absolute;inset:-6px;border:1px dashed oklch(50% 0.10 158 / .45);border-radius:50%}
+.seal .icon{width:29px;height:29px;stroke-width:1.9}
+.seal.no{background:var(--notmet-ink);box-shadow:0 8px 20px oklch(43% 0.09 45 / .18)}
+.seal.no::before{border-color:oklch(43% 0.09 45 / .4)}
+.seal.neutral{background:oklch(58% 0.018 240);box-shadow:none}
+.seal.neutral::before{border-color:var(--border)}
+.receipt .eyebrow{color:var(--warm-ink);opacity:.9;margin-bottom:7px}
+.receipt h2{max-width:24ch;font-family:var(--font-display);font-size:clamp(23px,2.7vw,29px);font-weight:600;letter-spacing:-.03em;line-height:1.13;color:var(--fg);text-wrap:balance}
+.receipt .receipt-meta{margin-top:7px;color:var(--warm-ink);font-size:12px;opacity:.9}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);margin:21px 0 16px;border:1px solid var(--warm-line);border-radius:13px;background:oklch(99.2% 0.006 82 / .65);overflow:hidden}
+.result-grid>div{padding:13px 15px;border-left:1px solid var(--warm-line)}
+.result-grid>div:first-child{border-left:0}
+.result-grid span{display:block;color:var(--warm-ink);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.result-grid strong{display:block;margin-top:3px;font-family:var(--font-display);font-size:21px;font-weight:600;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+.result-grid strong.yes{color:var(--success-ink)}
+.result-grid strong.no{color:var(--notmet-ink)}
+.result-grid small{display:block;margin-top:2px;color:var(--warm-ink);font-size:10.5px;opacity:.85}
+.receipt-scope{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 0;border-top:1px solid var(--warm-line)}
+.receipt-scope>div{padding-right:14px}
+.receipt-scope>div+div{padding-left:15px;padding-right:0;border-left:1px solid var(--warm-line)}
+.scope-label{display:flex;align-items:center;gap:6px;color:var(--warm-ink);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.scope-label .icon{width:13px;height:13px}
+.receipt-scope p{margin-top:5px;color:var(--warm-ink);font-size:11.5px;line-height:1.5;opacity:.84;text-wrap:pretty}
+.signature-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:3px;padding:10px 12px;border:1px solid var(--warm-line);border-radius:11px;background:oklch(100% 0 0 / .5)}
+.signature-row .sig-copy{min-width:0}
+.signature-row .sig-label{display:block;color:var(--warm-ink);font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;opacity:.8}
+.signature-row code{display:block;margin-top:2px;overflow:hidden;color:var(--warm-ink);font-family:var(--font-mono);font-size:11px;letter-spacing:-.02em;text-overflow:ellipsis;white-space:nowrap}
+.signature-row .icon-btn{width:44px;height:44px;border-color:var(--warm-line);background:transparent;color:var(--warm-ink);box-shadow:none}
+.signature-row .icon-btn:hover{background:oklch(100% 0 0 / .55);color:var(--fg)}
+.receipt-method{margin:2px 0 8px;color:var(--warm-ink);font-size:11px;line-height:1.45;opacity:.9}
+.sim-disclaimer{margin-top:11px;color:var(--warm-ink);font-size:11.5px;line-height:1.5;opacity:.88;text-wrap:pretty}
+.receipt-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:17px}
+
+.timeline{display:grid}
+.timeline li{position:relative;padding:0 0 17px 28px;font-size:13px}
+.timeline li:last-child{padding-bottom:0}
+.timeline li::before{content:"";position:absolute;left:4px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--border);box-shadow:0 0 0 3px var(--surface)}
+.timeline li.done::before{background:var(--accent-strong)}
+.timeline li.current::before{background:var(--pending-ink);box-shadow:0 0 0 3px var(--pending-soft)}
+.timeline li:not(:last-child)::after{content:"";position:absolute;left:8px;top:16px;bottom:1px;width:1px;background:var(--border)}
+.timeline .t-label{display:block;font-weight:600;line-height:1.4}
+.timeline .t-time{display:block;margin-top:1px;color:var(--muted);font-size:11px;line-height:1.4}
+.dl{display:grid;gap:0;margin-top:12px}
+.dl>div{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:10px 0;border-top:1px solid var(--border);font-size:12.5px}
+.dl>div:first-child{border-top:0;padding-top:0}
+.dl dt{color:var(--muted);line-height:1.4}
+.dl dd{min-width:0;text-align:right;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.dl dd.mono{font-family:var(--font-mono);font-size:11px;font-weight:500;letter-spacing:-.02em}
+.rent-highlight{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:12px;padding:12px 14px;border:1px solid var(--accent-line);border-radius:12px;background:var(--accent-soft)}
+.rent-highlight span{color:var(--accent-ink);font-size:11.5px;font-weight:600;line-height:1.35}
+.rent-highlight strong{font-family:var(--font-display);font-size:21px;font-weight:600;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.note{margin-top:10px;color:var(--muted);font-size:11.5px;line-height:1.5;text-wrap:pretty}
+.mini-list{display:grid;gap:7px;margin-top:9px}
+.mini-list li{display:flex;align-items:flex-start;gap:7px;color:var(--muted-strong);font-size:11.5px;line-height:1.4}
+.mini-list li .icon{width:14px;height:14px;margin-top:1px;flex:none;color:var(--accent-ink)}
+.mini-list.private li{color:var(--muted)}
+.mini-list.private li .icon{color:oklch(57% 0.014 240)}
+.privacy-block+.privacy-block{margin-top:14px;padding-top:13px;border-top:1px solid var(--border)}
+.privacy-block .mini-head{color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.link-field{display:flex;align-items:center;gap:6px;margin-top:9px;padding:3px 3px 3px 11px;border:1px solid var(--border);border-radius:10px;background:oklch(98.4% 0.003 240)}
+.link-field code{flex:1;min-width:0;overflow:hidden;color:var(--muted-strong);font-family:var(--font-mono);font-size:10.5px;letter-spacing:-.02em;text-overflow:ellipsis;white-space:nowrap}
+.link-field .icon-btn{width:44px;height:44px;border:0;background:transparent;color:var(--muted-strong)}
+.link-field .icon-btn:hover{background:var(--surface)}
+
+.tenant-main{max-width:1040px}
+.tenant-topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.tenant-demo{color:var(--muted);font-size:11px;line-height:1.4}
+.tenant-head{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;flex-wrap:wrap;margin-bottom:24px}
+.tenant-head h1{max-width:19ch;font-family:var(--font-display);font-size:clamp(30px,3.8vw,42px);font-weight:600;letter-spacing:-.04em;line-height:1.04;text-wrap:balance}
+.tenant-head .lede{max-width:56ch}
+.landlord-lockup{display:flex;align-items:center;gap:10px;padding:10px 13px;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow-sm)}
+.landlord-lockup .avatar{width:38px;height:38px;border-radius:12px}
+.landlord-lockup strong{display:block;font-size:12.5px;font-weight:600;line-height:1.25}
+.landlord-lockup span{display:block;margin-top:1px;color:var(--muted);font-size:10.5px;line-height:1.3}
+.tenant-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr);gap:18px;align-items:start}
+.tenant-grid .request-card{order:1}
+.tenant-grid .choice-card{order:3;grid-column:1/-1}
+.tenant-grid .local-card{order:2}
+.request-card{padding:26px}
+.request-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.property-lockup{display:flex;align-items:center;gap:11px;min-width:0}
+.property-lockup .avatar{width:44px;height:44px;border-radius:14px;font-size:13.5px}
+.property-lockup strong{display:block;font-size:14px;font-weight:600;line-height:1.3}
+.property-lockup span{display:block;margin-top:1px;color:var(--muted);font-size:11.5px;line-height:1.35}
+.question-block{margin-top:22px}
+.question-block h2{max-width:28ch;font-family:var(--font-display);font-size:clamp(22px,2.4vw,27px);font-weight:600;letter-spacing:-.03em;line-height:1.16;text-wrap:balance}
+.equation{display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;margin:18px 0 12px;padding:15px;border:1px solid var(--accent-line);border-radius:15px;background:oklch(98.2% 0.012 170)}
+.equation>div{display:flex;flex:1;flex-direction:column;gap:2px;min-width:125px}
+.equation .op{display:grid;place-items:center;flex:none;color:var(--accent-ink);font-family:var(--font-display);font-size:17px;font-weight:600}
+.equation span{color:var(--muted);font-size:10.5px;font-weight:600;letter-spacing:.02em}
+.equation strong{font-family:var(--font-display);font-size:25px;font-weight:600;letter-spacing:-.035em;line-height:1.15;font-variant-numeric:tabular-nums}
+.equation .eq-result strong{color:var(--accent-ink)}
+.question-note{color:var(--muted);font-size:11.5px;line-height:1.55;text-wrap:pretty}
+.request-meta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 17px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);color:var(--muted);font-size:11px}
+.request-meta span{display:inline-flex;align-items:center;gap:5px}
+.request-meta .icon{width:13px;height:13px}
+.local-card{padding:22px;background:linear-gradient(180deg, oklch(99% 0.009 170), oklch(100% 0 0));border-color:var(--accent-line)}
+.local-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.local-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border:1px solid var(--warm-line);border-radius:999px;background:var(--warm-soft);color:var(--warm-ink);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.local-tag .icon{width:12px;height:12px}
+.local-card h2{margin-top:12px;font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-.028em;line-height:1.2}
+.local-card .card-sub{margin-top:4px}
+.local-amount{margin-top:16px;padding:13px 14px;border:1px solid var(--border);border-radius:13px;background:var(--surface)}
+.local-amount span{display:block;color:var(--muted);font-size:10.5px;font-weight:600}
+.local-amount strong{display:block;margin-top:1px;font-family:var(--font-display);font-size:35px;font-weight:600;letter-spacing:-.045em;line-height:1.05;font-variant-numeric:tabular-nums}
+.local-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 2px 0;color:var(--muted);font-size:11.5px}
+.local-row strong{color:var(--fg);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.local-result{display:flex;align-items:center;gap:7px;margin-top:10px;padding:10px 11px;border:1px solid var(--success-line);border-radius:10px;background:var(--success-soft);color:var(--success-ink);font-size:11.5px;font-weight:600;line-height:1.35}
+.local-result .icon{width:15px;height:15px;flex:none}
+.local-result.below{border-color:var(--notmet-line);background:var(--notmet-soft);color:var(--notmet-ink)}
+.local-card .note{font-size:10.5px}
+.choice-card{padding:26px}
+.choice-card h2{font-size:22px}
+.boundary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:17px 0}
+.boundary>div{padding:14px;border-radius:13px;border:1px solid var(--border)}
+.boundary .shared{background:var(--accent-soft);border-color:var(--accent-line)}
+.boundary .private{background:oklch(97.7% 0.004 240);border-color:var(--border)}
+.boundary h3{display:flex;align-items:center;gap:6px;margin-bottom:8px;font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted-strong)}
+.boundary .shared h3{color:var(--accent-ink)}
+.boundary h3 .icon{width:13px;height:13px}
+.boundary ul{display:grid;gap:5px}
+.boundary li{position:relative;padding-left:11px;color:var(--muted-strong);font-size:11.5px;line-height:1.4;text-wrap:pretty}
+.boundary li::before{content:"";position:absolute;left:0;top:6px;width:4px;height:4px;border-radius:50%;background:currentColor;opacity:.4}
+.boundary .private li{color:var(--muted)}
+.consent{display:flex;align-items:flex-start;gap:11px;min-height:56px;padding:13px 14px;border:1px solid var(--border);border-radius:13px;background:var(--surface);cursor:pointer;transition:background .16s ease,border-color .16s ease}
+.consent:hover{background:oklch(98% 0.006 240);border-color:oklch(84% 0.008 240)}
+.consent:has(input:checked){background:var(--accent-soft);border-color:var(--accent-line)}
+.consent input{width:19px;height:19px;margin:1px 0 0;flex:none;accent-color:var(--accent-strong);cursor:pointer}
+.consent span{color:var(--muted-strong);font-size:12px;line-height:1.5;text-wrap:pretty}
+.consent strong{color:var(--fg);font-weight:600}
+.choice-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:13px}
+.choice-actions .btn-primary{flex:1;min-width:190px}
+.choice-actions .btn-ghost{flex:none}
+.sim-note{margin-top:12px;color:var(--muted);font-size:11.5px;line-height:1.55;text-wrap:pretty}
+.sim-note strong{color:var(--muted-strong);font-weight:600}
+.processing{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:250px;padding:20px;text-align:center}
+.process-seal{position:relative;display:grid;place-items:center;width:78px;height:78px;margin-bottom:16px;border:1px dashed var(--accent-line);border-radius:50%;background:var(--surface)}
+.spinner{width:34px;height:34px;border:3px solid var(--accent-soft);border-top-color:var(--accent-strong);border-radius:50%;animation:spin .9s linear infinite}
+.processing h3{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-.025em}
+.processing p{max-width:40ch;margin-top:6px;color:var(--muted);font-size:12.5px;line-height:1.55;text-wrap:pretty}
+.process-bar{width:min(240px,80%);height:5px;margin-top:18px;border-radius:999px;background:var(--accent-soft);overflow:hidden}
+.process-bar span{display:block;width:45%;height:100%;border-radius:999px;background:var(--accent-strong);animation:progress 1.5s ease-in-out infinite}
+.tenant-receipt{max-width:820px;margin:0 auto;padding:30px}
+.tenant-receipt .receipt-head{gap:20px}
+.tenant-receipt h2{max-width:26ch}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:20px;border:1px solid var(--warm-line);border-radius:13px;background:oklch(99.2% 0.006 82 / .6);overflow:hidden}
+.meta-grid>div{padding:11px 14px;border-left:1px solid var(--warm-line);border-top:1px solid var(--warm-line)}
+.meta-grid>div:nth-child(-n+2){border-top:0}
+.meta-grid>div:nth-child(odd){border-left:0}
+.meta-grid span{display:block;color:var(--warm-ink);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.78}
+.meta-grid strong{display:block;margin-top:2px;color:var(--fg);font-size:11.5px;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.meta-grid strong.mono{font-family:var(--font-mono);font-size:10.5px;font-weight:500;letter-spacing:-.02em}
+.tenant-receipt .receipt-scope{margin-top:15px;padding-top:15px}
+.tenant-receipt .receipt-actions{margin-top:18px}
+.tenant-note{display:flex;align-items:flex-start;gap:7px;margin-top:13px;color:var(--warm-ink);font-size:11.5px;line-height:1.5;opacity:.9}
+.tenant-note .icon{width:14px;height:14px;margin-top:1px;flex:none}
+
+.sheet{position:fixed;inset:0 0 0 auto;width:min(560px,100%);max-width:560px;height:100dvh;max-height:100dvh;margin:0;padding:0;border:0;border-left:1px solid var(--border);background:var(--surface);color:var(--fg);box-shadow:-20px 0 60px oklch(20% 0.02 240 / .16)}
+.sheet[open]{display:flex;flex-direction:column;border-radius:22px 0 0 22px;animation:slideIn .28s cubic-bezier(.2,.8,.2,1) both}
+.sheet[open]>form{display:flex;flex-direction:column;width:100%;height:100%;min-height:0}
+.sheet::backdrop{background:oklch(20% 0.02 240 / .36);backdrop-filter:blur(3px)}
+.sheet-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:24px 26px 16px;border-bottom:1px solid var(--border);flex:none}
+.sheet-head .eyebrow{margin-bottom:5px}
+.sheet-head h2{font-family:var(--font-display);font-size:25px;font-weight:600;letter-spacing:-.035em;line-height:1.1}
+.sheet-head p{margin-top:5px;color:var(--muted);font-size:12.5px}
+.sheet-body{flex:1;overflow:auto;padding:22px 26px 8px}
+.sheet-actions{display:flex;gap:9px;padding:15px 26px;border-top:1px solid var(--border);background:oklch(99.5% 0.002 240);flex:none}
+.sheet-actions .btn-primary{flex:1}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:grid;gap:5px;min-width:0}
+.field.full{grid-column:1 / -1}
+.field label{color:var(--muted-strong);font-size:11.5px;font-weight:600}
+.field input,.field select{width:100%;height:45px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:oklch(98.6% 0.003 240);color:var(--fg);font-size:13.5px;transition:background .16s ease,border-color .16s ease}
+.field input::placeholder{color:oklch(52% 0.015 240)}
+.field input:hover,.field select:hover{background:oklch(98% 0.004 240)}
+.field input:focus,.field select:focus{outline:2px solid var(--accent-strong);outline-offset:1px;background:var(--surface);border-color:var(--accent-line)}
+.field .helper{margin-top:1px;color:var(--muted);font-size:11px;line-height:1.4}
+.money{position:relative}
+.money>span{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13.5px;pointer-events:none}
+.money input{padding-left:27px;font-variant-numeric:tabular-nums}
+.form-divider{height:1px;margin:19px 0;background:var(--border)}
+.threshold-panel{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:13px;padding:13px 15px;border:1px solid var(--warm-line);border-radius:13px;background:var(--warm-soft)}
+.threshold-panel .threshold-copy span{display:block;color:var(--warm-ink);font-size:10.5px;font-weight:600;opacity:.8}
+.threshold-panel .threshold-copy strong{display:block;margin-top:2px;font-family:var(--font-display);font-size:25px;font-weight:600;letter-spacing:-.035em;line-height:1.1;color:var(--warm-ink);font-variant-numeric:tabular-nums}
+.threshold-panel .threshold-copy small{display:block;margin-top:1px;color:var(--warm-ink);font-size:11px;opacity:.82}
+.threshold-badge{display:flex;align-items:center;gap:5px;padding:6px 9px;border:1px solid var(--warm-line);border-radius:999px;background:oklch(100% 0 0 / .55);color:var(--warm-ink);font-size:10px;font-weight:600;white-space:nowrap}
+.threshold-badge .icon{width:12px;height:12px}
+.privacy-note{display:flex;align-items:flex-start;gap:8px;margin-top:13px;padding:11px 12px;border:1px dashed var(--border);border-radius:11px;color:var(--muted);font-size:11.5px;line-height:1.5}
+.privacy-note .icon{width:14px;height:14px;margin-top:1px;flex:none;color:var(--accent-ink)}
+.privacy-note strong{color:var(--muted-strong);font-weight:600}
+.form-error{display:none;margin-top:11px;padding:9px 11px;border:1px solid var(--danger-line);border-radius:9px;background:var(--danger-soft);color:var(--danger-ink);font-size:11.5px;line-height:1.4}
+.form-error.show{display:block}
+
+.modal{position:fixed;inset:0;margin:auto;width:min(520px,calc(100vw - 32px));height:max-content;max-height:calc(100dvh - 36px);padding:0;overflow:auto;border:0;border-radius:22px;background:var(--surface);color:var(--fg);box-shadow:0 24px 80px oklch(20% 0.02 240 / .24)}
+.modal::backdrop{background:oklch(20% 0.02 240 / .4);backdrop-filter:blur(4px)}
+.modal[open]{animation:modalIn .22s ease both}
+.modal.wide{width:min(650px,calc(100vw - 32px))}
+.modal-inner{padding:27px}
+.modal-icon{display:grid;place-items:center;width:46px;height:46px;margin-bottom:15px;border-radius:13px;background:var(--danger-soft);color:var(--danger-ink)}
+.modal-icon .icon{width:21px;height:21px}
+.modal h2{font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-.03em;line-height:1.15;text-wrap:balance}
+.modal> .modal-inner>p{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.55;text-wrap:pretty}
+.modal-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:22px}
+.privacy-section{display:grid;grid-template-columns:26px 1fr;gap:11px;margin-top:18px}
+.privacy-section .num{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--accent-line);border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);font-family:var(--font-display);font-size:11px;font-weight:600}
+.privacy-section h3{font-family:var(--font-body);font-size:12.5px;font-weight:700;line-height:1.4}
+.privacy-section p{margin-top:3px;color:var(--muted);font-size:11.5px;line-height:1.55;text-wrap:pretty}
+.privacy-section strong{color:var(--muted-strong);font-weight:600}
+.demo-disclaimer{margin-top:20px;padding:13px 14px;border:1px solid var(--warm-line);border-radius:12px;background:var(--warm-soft);color:var(--warm-ink);font-size:11px;line-height:1.55;text-wrap:pretty}
+.demo-disclaimer strong{display:block;margin-bottom:2px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+
+.toast{position:fixed;left:50%;bottom:22px;z-index:100;max-width:calc(100vw - 28px);padding:11px 17px;border-radius:11px;background:oklch(24% 0.025 240);color:oklch(100% 0 0);font-size:12.5px;font-weight:500;line-height:1.4;text-align:center;box-shadow:0 10px 30px oklch(20% 0.02 240 / .24);opacity:0;pointer-events:none;transform:translate(-50%,14px);transition:opacity .2s ease,transform .2s ease}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sealIn{from{opacity:0;transform:scale(.82) rotate(-7deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+@keyframes slideIn{from{transform:translateX(40px);opacity:.5}to{transform:translateX(0);opacity:1}}
+@keyframes modalIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes progress{0%{transform:translateX(-110%)}60%,100%{transform:translateX(250%)}}
+
+@media (max-width:1180px){
+  .detail-grid{grid-template-columns:1fr}
+  .detail-aside{grid-template-columns:1fr 1fr;align-items:start}
+  .tenant-grid{grid-template-columns:1fr}
+  .tenant-grid .request-card{order:1}
+  .tenant-grid .local-card{order:2}
+  .tenant-grid .choice-card{order:3;grid-column:1/-1}
+  .tenant-main{max-width:780px}
+}
+@media (max-width:1080px){
+  .list-head{display:none}
+  .request-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who status" "meta chevron";gap:11px 16px;padding:16px 24px}
+  .who{grid-area:who}
+  .meta-cells{grid-area:meta;display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 20px}
+  .status-cell{grid-area:status;justify-content:flex-end}
+  .chevron{grid-area:chevron}
+  .cell .m-label{display:block;margin-bottom:1px;color:var(--muted);font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .cell .value{font-size:12.5px}
+}
+@media (max-width:900px){
+  .app{display:block}
+  .sidebar{min-height:0;height:auto;display:block;padding:10px 16px 12px;background:oklch(100% 0 0 / .92);border-right:0;border-bottom:1px solid var(--border);box-shadow:0 1px 0 oklch(20% 0.02 240 / .02)}
+  .brand-mark{width:34px;height:34px;border-radius:10px}
+  .brand-text{font-size:14.5px}
+  .brand-text small{display:none}
+  .role-switch{margin:9px 0 0;width:100%}
+  .role-switch button{min-height:44px}
+  .workspace-card,.tenant-link-card,.side-nav,.side-foot{display:none}
+  .mobile-tools{display:flex}
+  .main{padding:24px 18px 46px}
+  .main-inner{max-width:760px}
+  .detail-aside{grid-template-columns:1fr}
+  .app-foot{margin-top:26px}
+}
+@media (max-width:760px){
+  .page-head{align-items:flex-start;margin-bottom:21px}
+  .page-head .btn-primary{width:100%}
+  .metrics{grid-template-columns:1fr}
+  .metric{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 17px;border-left:0;border-top:1px solid var(--border)}
+  .metric:first-child{border-top:0}
+  .metric-value{margin:0;font-size:26px}
+  .metric-note{display:none}
+  .ledger{margin-bottom:21px}
+  .panel-head{padding:18px 18px 13px}
+  .search{flex-basis:100%;min-width:0}
+  .filters{padding:0 18px 13px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .request-row{padding:15px 18px}
+  .panel-foot{padding:12px 18px}
+  .detail-top{margin-bottom:10px}
+  .detail-head{align-items:flex-start;margin-bottom:19px}
+  .identity{gap:12px}
+  .avatar-lg{width:48px;height:48px;border-radius:15px;font-size:15px}
+  .detail-side-note{display:none}
+  .focus-card,.receipt,.request-card,.choice-card{padding:21px}
+  .hero-split{display:block}
+  .seal-wrap{display:none}
+  .receipt-head{gap:14px}
+  .seal{width:62px;height:62px}
+  .seal .icon{width:25px;height:25px}
+  .result-grid{grid-template-columns:1fr}
+  .result-grid>div{border-left:0;border-top:1px solid var(--warm-line);display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 14px}
+  .result-grid>div:first-child{border-top:0}
+  .result-grid span{grid-column:1}
+  .result-grid strong{grid-column:2;grid-row:1 / span 2;margin-top:0;font-size:20px}
+  .result-grid small{grid-column:1;margin-top:0}
+  .receipt-scope{grid-template-columns:1fr;gap:12px}
+  .receipt-scope>div{padding-right:0}
+  .receipt-scope>div+div{padding-top:12px;padding-left:0;border-left:0;border-top:1px solid var(--warm-line)}
+  .tenant-topline{margin-bottom:14px}
+  .tenant-head{margin-bottom:18px}
+  .tenant-head h1{font-size:clamp(29px,7.2vw,38px);max-width:15ch}
+  .landlord-lockup{padding:8px 10px}
+  .tenant-receipt{padding:22px}
+  .meta-grid{grid-template-columns:1fr}
+  .meta-grid>div{border-left:0;border-top:1px solid var(--warm-line)}
+  .meta-grid>div:first-child{border-top:0}
+  .meta-grid>div:nth-child(2){border-top:1px solid var(--warm-line)}
+  .form-grid{grid-template-columns:1fr}
+  .sheet-head{padding:20px 20px 14px}
+  .sheet[open]{border-radius:0}
+  .sheet-body{padding:18px 20px 6px}
+  .sheet-actions{padding:13px 20px}
+  .modal-inner{padding:23px}
+}
+@media (max-width:560px){
+  .main{padding:20px 14px 40px}
+  .sidebar{padding-left:14px;padding-right:14px}
+  .btn{min-height:46px}
+  .hero-actions .btn,.receipt-actions .btn{flex:1;min-width:140px}
+  .choice-actions .btn{width:100%;flex:auto}
+  .choice-actions .btn-ghost{width:100%}
+  .boundary{grid-template-columns:1fr}
+  .equation{gap:9px}
+  .equation>div{min-width:105px}
+  .equation strong{font-size:22px}
+  .receipt-head{flex-direction:column;align-items:flex-start}
+  .receipt-head .seal{margin-bottom:4px}
+  .banner{flex-wrap:wrap}
+  .banner .banner-action{margin-left:30px}
+  .banner .icon-btn{margin-left:auto}
+  .identity-title{gap:7px}
+  .avatar-lg{width:44px;height:44px;border-radius:13px;font-size:14px}
+  .identity h1{font-size:25px}
+  .card{padding:18px}
+  .focus-card,.receipt,.request-card,.choice-card{padding:18px}
+  .tenant-receipt{padding:18px}
+  .app-foot{display:block;line-height:1.6}
+  .app-foot span{display:block}
+  .app-foot span+span{margin-top:2px}
+}
+@media (max-width:390px){
+  .brand-text{font-size:13.5px}
+  .mobile-tools .icon-btn{width:44px;height:44px}
+  .role-switch button{font-size:11.5px}
+  .metric{padding:13px 15px}
+  .panel-head{padding-left:15px;padding-right:15px}
+  .filters{padding-left:15px;padding-right:15px}
+  .request-row{padding-left:15px;padding-right:15px}
+  .page-head h1{font-size:27px}
+  .tenant-head h1{font-size:27px}
+  .hero-actions .btn{min-width:100%}
+  .receipt h2{font-size:22px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div id="app" class="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<dialog id="sheetDialog" class="sheet" aria-labelledby="sheetTitle" data-od-id="create-request-dialog">
+  <form id="createForm" novalidate>
+    <div class="sheet-head">
+      <div>
+        <p class="eyebrow"><span class="dot"></span>New request</p>
+        <h2 id="sheetTitle">Ask one private question.</h2>
+        <p>Set the rent. The tenant runs the check on their device.</p>
+      </div>
+      <button type="button" class="icon-btn" data-close-sheet aria-label="Close new request form">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="sheet-body">
+      <div class="form-grid">
+        <div class="field full">
+          <label for="applicantField">Applicant name</label>
+          <input id="applicantField" name="applicant" type="text" autocomplete="off" placeholder="e.g. Maya Chen">
+        </div>
+        <div class="field full">
+          <label for="emailField">Tenant email <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+          <input id="emailField" name="email" type="email" autocomplete="off" placeholder="tenant@example.com">
+          <p class="helper">Demo only. No email is sent — you’ll get the private link here.</p>
+        </div>
+        <div class="field">
+          <label for="unitField">Property &amp; unit</label>
+          <select id="unitField" name="unit">
+            <option>Unit 1A</option>
+            <option>Unit 2B</option>
+            <option selected>Unit 3B</option>
+            <option>Unit 4C</option>
+            <option>Unit 5A</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="rentInput">Monthly rent</label>
+          <div class="money">
+            <span>$</span>
+            <input id="rentInput" name="rent" type="number" inputmode="numeric" min="100" max="50000" step="50" value="2400">
+          </div>
+        </div>
+        <div class="field">
+          <label for="expiryField">Link expires</label>
+          <select id="expiryField" name="expiry">
+            <option value="3">In 3 days</option>
+            <option value="7" selected>In 7 days</option>
+            <option value="14">In 14 days</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="refField">Request reference</label>
+          <input id="refField" type="text" value="Assigned on create" disabled>
+        </div>
+      </div>
+      <div class="threshold-panel">
+        <div class="threshold-copy">
+          <span>Applicant must meet 3× rent</span>
+          <strong id="thresholdValue">$7,200</strong>
+          <small>per month minimum</small>
+        </div>
+        <span class="threshold-badge">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3 5.5 5.8v5.3c0 4.1 2.7 7.7 6.5 9.4 3.8-1.7 6.5-5.3 6.5-9.4V5.8L12 3Z"/></svg>
+          Set by you
+        </span>
+      </div>
+      <div class="privacy-note">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>
+        <span><strong>Income stays private.</strong> This request never asks for bank statements or displays the applicant’s income. You receive only a signed yes or no, plus request metadata.</span>
+      </div>
+      <div id="createError" class="form-error" role="alert"></div>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" data-close-sheet>Cancel</button>
+      <button type="submit" class="btn btn-primary">Create private request</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="privacyDialog" class="modal wide" aria-labelledby="privacyTitle" data-od-id="privacy-dialog">
+  <div class="modal-inner">
+    <div class="modal-icon" style="background:var(--accent-soft);color:var(--accent-ink)">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>
+    </div>
+    <h2 id="privacyTitle">A narrow question, answered privately.</h2>
+    <p>Need-to-Know verifies one thing: whether a tenant’s income meets a rent requirement. Here is exactly where the line sits.</p>
+    <div class="privacy-section">
+      <span class="num">1</span>
+      <div>
+        <h3>Only a yes or no leaves the device.</h3>
+        <p>The tenant receives a link scoped to one request and one landlord. They run the check on their own device, then choose whether to share the result.</p>
+      </div>
+    </div>
+    <div class="privacy-section">
+      <span class="num">2</span>
+      <div>
+        <h3>No financial paperwork changes hands.</h3>
+        <p><strong>Income amounts, balances, transactions, statements, and bank credentials stay on the tenant’s device.</strong> The landlord sees an eligibility result and verification metadata — never the underlying records.</p>
+      </div>
+    </div>
+    <div class="privacy-section">
+      <span class="num">3</span>
+      <div>
+        <h3>No tenant profile follows them around.</h3>
+        <p>There is no global tenant identifier and no cross-landlord comparison. A result belongs to this request and this landlord only.</p>
+      </div>
+    </div>
+    <div class="privacy-section">
+      <span class="num">4</span>
+      <div>
+        <h3>The landlord learns the bar was met, not by how much.</h3>
+        <p>Because the question is “at least 3× rent,” a yes implies income above that threshold. The exact amount is never disclosed.</p>
+      </div>
+    </div>
+    <div class="demo-disclaimer">
+      <strong>Prototype disclosure</strong>
+      This demo uses synthetic data. The private link is a demo route; the on-device check and signature are simulated for illustration. It is not a zero-knowledge proof, a production audit, or a certified verification service.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" data-close-dialog>Got it</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="confirmDialog" class="modal" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+  <div class="modal-inner">
+    <div class="modal-icon" id="confirmIcon">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v4.5M12 17h.01"/></svg>
+    </div>
+    <h2 id="confirmTitle">Are you sure?</h2>
+    <p id="confirmBody"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" data-confirm-cancel>Cancel</button>
+      <button class="btn btn-danger" id="confirmOk">Confirm</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const STORAGE_KEY = 'ntk.demo.v3';
+const DEMO_INCOME = 8450;
+const MULTIPLE = 3;
+const app = document.getElementById('app');
+const toastEl = document.getElementById('toast');
+const sheet = document.getElementById('sheetDialog');
+const createForm = document.getElementById('createForm');
+const confirmDialog = document.getElementById('confirmDialog');
+const privacyDialog = document.getElementById('privacyDialog');
+const confirmTitle = document.getElementById('confirmTitle');
+const confirmBody = document.getElementById('confirmBody');
+const confirmOk = document.getElementById('confirmOk');
+
+const ICONS = {
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  arrowLeft: '<path d="M19 12H5m6-6-6 6 6 6"/>',
+  arrowRight: '<path d="M5 12h14m-6-6 6 6-6 6"/>',
+  check: '<path d="m5 12 4.5 4.5L19 7"/>',
+  x: '<path d="m6 6 12 12M18 6 6 18"/>',
+  clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.5"/>',
+  lock: '<rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/>',
+  shield: '<path d="M12 3 5.5 5.8v5.3c0 4.1 2.7 7.7 6.5 9.4 3.8-1.7 6.5-5.3 6.5-9.4V5.8L12 3Z"/><path d="m9 12 2 2 4-4"/>',
+  copy: '<rect x="9" y="9" width="10" height="11" rx="2"/><path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4H6.5A2.5 2.5 0 0 0 4 6.5v7A2.5 2.5 0 0 0 6.5 16H9"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 6.7"/><path d="M20 5v6h-6"/>',
+  building: '<path d="M4 21V6.5L12 3l8 3.5V21"/><path d="M9 21v-5h6v5M8 9h.01M12 9h.01M16 9h.01M8 12.5h.01M12 12.5h.01M16 12.5h.01"/>',
+  link: '<path d="M10.5 13.5a4 4 0 0 0 5.7 0l2.3-2.3a4 4 0 1 0-5.7-5.7l-1.3 1.3"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-2.3 2.3a4 4 0 1 0 5.7 5.7l1.3-1.3"/>',
+  doc: '<path d="M7 3h6.5L18 7.5V21H7z"/><path d="M13 3v5h5M10 13h5M10 17h5"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  key: '<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M16 7l2 2M13.5 9.5l2 2"/>',
+  user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/>',
+  alert: '<path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 9v4.5M12 17h.01"/>'
+};
+function icon(name, cls = '') {
+  return '<svg class="icon ' + cls + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+}
+
+const STATUS_META = {
+  pending: { label: 'Awaiting tenant', className: 'pending' },
+  approved: { label: 'Approved', className: 'approved' },
+  not_met: { label: 'Not met', className: 'notmet' },
+  declined: { label: 'Declined', className: 'declined' },
+  expired: { label: 'Expired', className: 'expired' }
+};
+
+function simSig() {
+  const chars = '0123456789abcdef';
+  let out = 'ntk_sim_';
+  for (let i = 0; i < 18; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+function seedState() {
+  const now = Date.now();
+  const at = (mins) => new Date(now + mins * 60000).toISOString();
+  return {
+    version: 3,
+    activeTenantId: 'req_maya',
+    requests: [
+      {
+        id: 'req_maya', ref: 'NTK-1042', applicant: 'Maya Chen', email: 'maya.chen@example.com',
+        unit: 'Unit 3B', rent: 2400, status: 'pending', createdAt: at(-125), expiresAt: at(8640),
+        viewedAt: null, respondedAt: null, result: null
+      },
+      {
+        id: 'req_priya', ref: 'NTK-1041', applicant: 'Priya Nair', email: 'priya.nair@example.com',
+        unit: 'Unit 1A', rent: 2100, status: 'approved', createdAt: at(-2880), expiresAt: at(4320),
+        viewedAt: at(-2820), respondedAt: at(-2670),
+        result: { outcome: 'meets', threshold: 6300, sharedAt: at(-2670), method: 'Device-side eligibility check', signature: simSig() }
+      },
+      {
+        id: 'req_daniel', ref: 'NTK-1039', applicant: 'Daniel Kim', email: 'daniel.kim@example.com',
+        unit: 'Unit 4C', rent: 2650, status: 'declined', createdAt: at(-4320), expiresAt: at(1440),
+        viewedAt: at(-4200), respondedAt: at(-3900), result: null
+      },
+      {
+        id: 'req_ana', ref: 'NTK-1036', applicant: 'Ana Torres', email: 'ana.torres@example.com',
+        unit: 'Unit 2B', rent: 1980, status: 'expired', createdAt: at(-14400), expiresAt: at(-2880),
+        viewedAt: at(-14000), respondedAt: null, result: null
+      },
+      {
+        id: 'req_owen', ref: 'NTK-1033', applicant: 'Owen Park', email: 'owen.park@example.com',
+        unit: 'Unit 5A', rent: 3200, status: 'not_met', createdAt: at(-5760), expiresAt: at(2880),
+        viewedAt: at(-5700), respondedAt: at(-5300),
+        result: { outcome: 'below', threshold: 9600, sharedAt: at(-5300), method: 'Device-side eligibility check', signature: simSig() }
+      }
+    ]
+  };
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.version !== 3 || !Array.isArray(parsed.requests)) return null;
+    return parsed;
+  } catch (err) { return null; }
+}
+let state = loadState() || seedState();
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (err) {}
+}
+save();
+
+const ui = { filter: 'all', query: '', notice: null, justCreated: null, checking: null, keepScroll: false };
+let pendingConfirm = null;
+let toastTimer = null;
+
+function esc(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function money(n) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
+}
+const DATE_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+const DATE_TIME_FMT = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+function fmtDate(iso) { try { return DATE_FMT.format(new Date(iso)); } catch (e) { return '—'; } }
+function fmtDateTime(iso) { try { return DATE_TIME_FMT.format(new Date(iso)); } catch (e) { return '—'; } }
+function relative(iso) {
+  if (!iso) return '—';
+  const diff = Date.now() - new Date(iso).getTime();
+  const abs = Math.abs(diff);
+  const mins = Math.round(abs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return diff >= 0 ? mins + 'm ago' : 'in ' + mins + 'm';
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return diff >= 0 ? hours + 'h ago' : 'in ' + hours + 'h';
+  const days = Math.round(hours / 24);
+  if (days < 7) return diff >= 0 ? days + 'd ago' : 'in ' + days + 'd';
+  return fmtDate(iso);
+}
+function daysLeft(iso) {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return 'Expired';
+  const days = Math.ceil(ms / 86400000);
+  return days === 1 ? '1 day left' : days + ' days left';
+}
+function initials(name) {
+  return String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase();
+}
+function firstName(name) { return String(name || '').trim().split(/\s+/)[0] || 'The tenant'; }
+function thresholdFor(rent) { return Math.round(Number(rent) || 0) * MULTIPLE; }
+function statusChip(status, extraClass = '') {
+  const meta = STATUS_META[status] || STATUS_META.pending;
+  return '<span class="chip ' + meta.className + ' ' + extraClass + '">' + meta.label + '</span>';
+}
+function liveRequests() {
+  let changed = false;
+  state.requests.forEach((r) => {
+    if (r.status === 'pending' && Date.now() > new Date(r.expiresAt).getTime()) {
+      r.status = 'expired';
+      changed = true;
+    }
+  });
+  if (changed) save();
+  return state.requests.slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+function findRequest(id) { return liveRequests().find((r) => r.id === id) || null; }
+function maxRef() {
+  return state.requests.reduce((max, r) => {
+    const n = parseInt(String(r.ref).replace(/\D/g, ''), 10);
+    return Number.isFinite(n) ? Math.max(max, n) : max;
+  }, 1000);
+}
+
+function route() {
+  const raw = location.hash.replace(/^#\/?/, '');
+  const parts = raw.split('/').filter(Boolean);
+  if (parts[0] === 'request' && parts[1]) return { view: 'detail', id: decodeURIComponent(parts[1]) };
+  if (parts[0] === 'tenant') return { view: 'tenant', id: parts[1] ? decodeURIComponent(parts[1]) : null };
+  return { view: 'dashboard' };
+}
+function navigate(hash) {
+  if (location.hash === hash) render();
+  else location.hash = hash;
+}
+function toast(message) {
+  toastEl.textContent = message;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2800);
+}
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (err) {}
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-1000px';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
+  document.body.removeChild(ta);
+  return ok;
+}
+function tenantLink(id) {
+  return location.href.split('#')[0] + '#/tenant/' + encodeURIComponent(id);
+}
+function summaryText(r) {
+  if (!r || !r.result) return '';
+  const outcome = r.result.outcome === 'meets' ? 'Meets the 3× rent requirement' : 'Does not meet the 3× rent requirement';
+  return [
+    'Need-to-Know · shared eligibility result',
+    'Request: ' + r.ref,
+    'Applicant: ' + r.applicant + ' · ' + r.unit,
+    'Rent: ' + money(r.rent) + '/month',
+    'Requirement: 3× rent = ' + money(r.result.threshold || thresholdFor(r.rent)) + '/month',
+    'Result: ' + outcome,
+    'Shared: ' + fmtDateTime(r.result.sharedAt),
+    'Method: ' + r.result.method + ' (simulated)',
+    'Signature (simulated): ' + r.result.signature,
+    '',
+    'Shared with the landlord: eligibility result, request ID, timestamp, check method.',
+    'Not shared: income amount, balances, transactions, documents.',
+    '',
+    'Demo only — simulated cryptography. Not a zero-knowledge proof or production certificate.'
+  ].join('\n');
+}
+
+function sidebar(activeRole, reqs, tenantReq) {
+  const isTenant = activeRole === 'tenant';
+  const pending = reqs.filter((r) => r.status === 'pending').length;
+  const tenantHref = tenantReq ? '#/tenant/' + tenantReq.id : '#/tenant';
+  const tenantCard = tenantReq ? (
+    '<div class="tenant-link-card" data-od-id="tenant-link-card">' +
+      '<div class="tl-top">' + icon('lock') + ' Private link</div>' +
+      '<strong>' + esc(tenantReq.ref) + '</strong>' +
+      '<span>' + esc(tenantReq.property || 'Juniper House') + ' · ' + esc(tenantReq.unit) + '</span>' +
+    '</div>'
+  ) : (
+    '<div class="tenant-link-card"><div class="tl-top">' + icon('lock') + ' Private link</div><strong>No active link</strong><span>Open a request from the landlord view.</span></div>'
+  );
+  return '<aside class="sidebar" data-od-id="app-sidebar">' +
+    '<div class="sidebar-top">' +
+      '<a class="brand" href="#/requests" aria-label="Need-to-Know home">' +
+        '<span class="brand-mark">' + icon('shield') + '</span>' +
+        '<span class="brand-text">Need-to-Know<small>Private rent checks</small></span>' +
+      '</a>' +
+      '<div class="mobile-tools">' +
+        '<button class="icon-btn" data-action="open-privacy" aria-label="Privacy and demo notes">' + icon('shield') + '</button>' +
+        '<button class="icon-btn" data-action="reset-demo" aria-label="Reset demo">' + icon('refresh') + '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="role-switch" role="group" aria-label="Demo role" data-od-id="role-switch">' +
+      '<button type="button" data-action="set-role" data-role="landlord" class="' + (!isTenant ? 'is-active' : '') + '" aria-pressed="' + (!isTenant) + '">' + icon('building') + 'Landlord</button>' +
+      '<button type="button" data-action="set-role" data-role="tenant" class="' + (isTenant ? 'is-active' : '') + '" aria-pressed="' + isTenant + '">' + icon('user') + 'Tenant</button>' +
+    '</div>' +
+    (isTenant ? tenantCard : (
+      '<div class="workspace-card" data-od-id="workspace-card">' +
+        '<span class="avatar" aria-hidden="true">JH</span>' +
+        '<div><strong>Juniper House</strong><span>5 units · Demo workspace</span></div>' +
+      '</div>'
+    )) +
+    '<nav class="side-nav" aria-label="Main">' +
+      (isTenant
+        ? '<a class="nav-link is-active" href="' + tenantHref + '" data-od-id="nav-tenant-request">' + icon('key') + 'Your request</a>'
+        : '<a class="nav-link ' + (activeRole === 'landlord' ? 'is-active' : '') + '" href="#/requests" data-od-id="nav-requests">' + icon('doc') + 'Requests' + (pending ? '<span class="nav-badge">' + pending + '</span>' : '') + '</a>') +
+    '</nav>' +
+    '<div class="side-foot">' +
+      '<button class="nav-link" data-action="open-privacy">' + icon('shield') + 'Privacy &amp; demo</button>' +
+      '<button class="nav-link danger" data-action="reset-demo" data-od-id="reset-demo-button">' + icon('refresh') + 'Reset demo</button>' +
+      '<div class="demo-note"><strong>Synthetic demo</strong>No bank connections. Demo links; checks and signatures are simulated.</div>' +
+    '</div>' +
+  '</aside>';
+}
+
+function statusNotice(reqs) {
+  if (!ui.notice) return '';
+  const req = reqs.find((r) => r.id === ui.notice.id);
+  if (!req) return '';
+  let cls = 'success';
+  let title = 'Signed result received';
+  let copy = firstName(req.applicant) + ' shared an eligibility result for ' + req.unit + '. Open the request to see the signed yes/no.';
+  let action = 'View result';
+  if (req.status === 'declined') {
+    cls = 'danger'; title = 'Request declined';
+    copy = firstName(req.applicant) + ' declined to share. No income, balances, transactions, or documents were shared.';
+    action = 'View request';
+  } else if (req.status === 'not_met') {
+    cls = 'warm'; title = 'Signed “no” received';
+    copy = firstName(req.applicant) + ' shared a result for ' + req.unit + '. Open the request to review the signed outcome.';
+  } else if (req.status === 'expired') {
+    cls = 'warm'; title = 'Request expired';
+    copy = 'This private link closed before a result was shared.';
+  }
+  return '<div class="banner ' + cls + '" role="status" data-od-id="result-notice">' +
+    icon(req.status === 'approved' ? 'check' : req.status === 'declined' ? 'alert' : 'info') +
+    '<div class="banner-copy"><strong>' + title + '</strong><p>' + esc(copy) + '</p></div>' +
+    '<a class="text-link banner-action" href="#/request/' + req.id + '">' + action + icon('arrowRight') + '</a>' +
+    '<button class="icon-btn" data-action="dismiss-notice" aria-label="Dismiss notification">' + icon('x') + '</button>' +
+  '</div>';
+}
+
+function rowHTML(r) {
+  const meta = STATUS_META[r.status] || STATUS_META.pending;
+  return '<a class="request-row" href="#/request/' + r.id + '" data-od-id="request-row-' + r.id + '" aria-label="Open request for ' + esc(r.applicant) + ', ' + esc(r.unit) + ', rent ' + money(r.rent) + ' per month, 3× threshold ' + money(thresholdFor(r.rent)) + ', ' + meta.label + '">' +
+    '<span class="who">' +
+      '<span class="avatar" aria-hidden="true">' + esc(initials(r.applicant)) + '</span>' +
+      '<span class="who-text"><span class="name">' + esc(r.applicant) + '</span><span class="unit">' + esc(r.unit) + ' · ' + esc(r.ref) + '</span></span>' +
+    '</span>' +
+    '<span class="meta-cells">' +
+      '<span class="cell rent"><span class="m-label">Rent</span><span class="value">' + money(r.rent) + '<small>/mo</small></span></span>' +
+      '<span class="cell threshold"><span class="m-label">3× threshold</span><span class="value">' + money(thresholdFor(r.rent)) + '</span></span>' +
+      '<span class="cell sent"><span class="m-label">Sent</span><span class="value soft" title="' + esc(fmtDateTime(r.createdAt)) + '">' + esc(relative(r.createdAt)) + '</span></span>' +
+    '</span>' +
+    '<span class="status-cell">' + statusChip(r.status) + '</span>' +
+    '<span class="chevron">' + icon('chevron') + '</span>' +
+  '</a>';
+}
+
+function filtered(reqs) {
+  const q = ui.query.trim().toLowerCase();
+  return reqs.filter((r) => {
+    const matchFilter = ui.filter === 'all' || r.status === ui.filter;
+    const matchQuery = !q || [r.applicant, r.unit, r.ref, r.email].join(' ').toLowerCase().includes(q);
+    return matchFilter && matchQuery;
+  });
+}
+
+function dashboardView(reqs) {
+  const pending = reqs.filter((r) => r.status === 'pending').length;
+  const approved = reqs.filter((r) => r.status === 'approved').length;
+  const attention = reqs.filter((r) => r.status === 'declined' || r.status === 'expired').length;
+  const today = new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(new Date());
+  const counts = {
+    all: reqs.length,
+    pending: pending,
+    approved: approved,
+    not_met: reqs.filter((r) => r.status === 'not_met').length,
+    declined: reqs.filter((r) => r.status === 'declined').length,
+    expired: reqs.filter((r) => r.status === 'expired').length
+  };
+  const defs = [
+    ['all', 'All'], ['pending', 'Awaiting tenant'], ['approved', 'Approved'],
+    ['not_met', 'Not met'], ['declined', 'Declined'], ['expired', 'Expired']
+  ];
+  const rows = filtered(reqs);
+  const summary = rows.length === reqs.length
+    ? 'Showing all ' + reqs.length + (reqs.length === 1 ? ' request' : ' requests')
+    : 'Showing ' + rows.length + ' of ' + reqs.length + ' requests';
+
+  return '<header class="page-head" data-od-id="dashboard-header">' +
+      '<div>' +
+        '<p class="eyebrow"><span class="dot"></span>Juniper House · ' + esc(today) + '</p>' +
+        '<h1 data-od-id="page-title">Verification requests</h1>' +
+        '<p class="lede">Know whether an applicant meets your 3× rent bar — without collecting bank statements, balances, or income amounts.</p>' +
+      '</div>' +
+      '<button class="btn btn-primary" data-action="open-create" data-od-id="new-request-button">' + icon('plus') + 'New request</button>' +
+    '</header>' +
+    statusNotice(reqs) +
+    '<section class="metrics" aria-label="Request summary" data-od-id="dashboard-metrics">' +
+      '<div class="metric" data-od-id="metric-awaiting"><div class="metric-label">Awaiting tenant</div><div class="metric-value">' + pending + '</div><div class="metric-note">Private ' + (pending === 1 ? 'link open' : 'links open') + '</div></div>' +
+      '<div class="metric" data-od-id="metric-approved"><div class="metric-label">Approved</div><div class="metric-value">' + approved + '</div><div class="metric-note">Signed yes results</div></div>' +
+      '<div class="metric" data-od-id="metric-attention"><div class="metric-label">Needs attention</div><div class="metric-value">' + attention + '</div><div class="metric-note">Declined or expired</div></div>' +
+    '</section>' +
+    '<div class="ledger" data-od-id="privacy-ledger">' +
+      '<div class="ledger-label">' + icon('lock') + 'Privacy ledger</div>' +
+      '<div class="ledger-items"><span>0 bank documents</span><span>0 income amounts stored here</span><span>Every result scoped to one request</span></div>' +
+    '</div>' +
+    '<section class="panel" aria-labelledby="requestsTitle" data-od-id="requests-panel">' +
+      '<div class="panel-head">' +
+        '<div><div class="panel-title"><h2 id="requestsTitle">All requests</h2><span class="panel-count">' + reqs.length + '</span></div><p class="panel-sub" id="listSummary" aria-live="polite">' + esc(summary) + '</p></div>' +
+        '<div class="search">' + icon('search') + '<input id="searchInput" type="search" aria-label="Search requests" placeholder="Search name, unit, or ref" value="' + esc(ui.query) + '" autocomplete="off"><button class="clear-search" id="clearSearch" data-action="clear-search" aria-label="Clear search" ' + (ui.query ? '' : 'hidden') + '>' + icon('x') + '</button></div>' +
+      '</div>' +
+      '<div class="filters" role="group" aria-label="Filter requests by status" data-od-id="request-filters">' +
+        defs.map(([key, label]) => '<button class="filter ' + (ui.filter === key ? 'is-active' : '') + '" data-action="filter" data-filter="' + key + '" aria-pressed="' + (ui.filter === key) + '" data-od-id="filter-' + key + '">' + label + '<span class="count">' + counts[key] + '</span></button>').join('') +
+      '</div>' +
+      '<div class="list-head" aria-hidden="true"><span>Applicant</span><span>Monthly rent</span><span>3× threshold</span><span>Sent</span><span>Status</span><span></span></div>' +
+      '<div id="requestRows">' + (rows.length ? rows.map(rowHTML).join('') : emptyRowsHTML(reqs.length)) + '</div>' +
+      '<div class="panel-foot">' + icon('lock') + '<span>Thresholds are calculated from rent you set. Tenant income amounts are never displayed, stored, or requested here.</span></div>' +
+    '</section>' +
+    '<footer class="app-foot"><span>Need-to-Know · HackHarvard 2026 demo</span><span>Prototype only — synthetic data, no bank connections. Demo links; checks and signatures simulated.</span></footer>';
+}
+
+function emptyRowsHTML(total) {
+  const active = ui.filter !== 'all' || ui.query.trim();
+  return '<div class="empty">' +
+    '<div class="empty-mark">' + icon(active ? 'search' : 'doc') + '</div>' +
+    '<h3>' + (active ? 'No requests match' : 'No requests yet') + '</h3>' +
+    '<p>' + (active ? 'Try another status or clear your search to see all ' + total + ' requests.' : 'Create a private request and share the link with your applicant.') + '</p>' +
+    (active ? '<button class="btn btn-ghost" data-action="clear-filters">Clear filters</button>' : '<button class="btn btn-primary" data-action="open-create">' + icon('plus') + 'New request</button>') +
+  '</div>';
+}
+
+function renderRows() {
+  const reqs = liveRequests();
+  const rows = filtered(reqs);
+  const holder = document.getElementById('requestRows');
+  if (!holder) return;
+  holder.innerHTML = rows.length ? rows.map(rowHTML).join('') : emptyRowsHTML(reqs.length);
+  const summary = document.getElementById('listSummary');
+  if (summary) {
+    summary.textContent = rows.length === reqs.length
+      ? 'Showing all ' + reqs.length + (reqs.length === 1 ? ' request' : ' requests')
+      : 'Showing ' + rows.length + ' of ' + reqs.length + ' requests';
+  }
+  const clear = document.getElementById('clearSearch');
+  if (clear) clear.hidden = !ui.query;
+  document.querySelectorAll('.filter').forEach((btn) => {
+    const active = btn.dataset.filter === ui.filter;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+}
+
+function timelineHTML(req) {
+  const steps = [];
+  steps.push({ label: 'Request sent', time: fmtDateTime(req.createdAt), state: 'done' });
+  if (req.viewedAt) steps.push({ label: 'Private link opened', time: fmtDateTime(req.viewedAt), state: 'done' });
+  if (req.status === 'declined') {
+    steps.push({ label: 'Tenant declined to share', time: fmtDateTime(req.respondedAt || req.expiresAt), state: 'current' });
+  } else if (req.status === 'expired') {
+    steps.push({ label: 'Request expired', time: fmtDate(req.expiresAt), state: 'current' });
+  } else if (req.result) {
+    steps.push({ label: 'Signed result shared', time: fmtDateTime(req.result.sharedAt), state: 'current' });
+  } else {
+    steps.push({ label: 'Awaiting tenant response', time: 'Expires ' + fmtDate(req.expiresAt), state: 'current' });
+  }
+  return '<ol class="timeline">' + steps.map((s) => '<li class="' + s.state + '"><span class="t-label">' + esc(s.label) + '</span><span class="t-time">' + esc(s.time) + '</span></li>').join('') + '</ol>';
+}
+
+function pendingHero(req) {
+  const first = firstName(req.applicant);
+  const viewedCopy = req.viewedAt
+    ? first + ' opened the private link ' + relative(req.viewedAt) + '.'
+    : 'The private link is ready. It hasn’t been opened yet.';
+  return '<section class="focus-card" data-od-id="request-status-card">' +
+    '<div class="hero-split">' +
+      '<div>' +
+        '<p class="eyebrow"><span class="dot"></span>Awaiting tenant</p>' +
+        '<h2>Waiting on ' + esc(first) + '.</h2>' +
+        '<p class="hero-copy">' + esc(viewedCopy) + ' You’ll see a signed yes or no as soon as they respond — never their income, balances, or documents.</p>' +
+        '<div class="hero-meta"><span class="meta-item">' + icon('clock') + 'Sent ' + esc(relative(req.createdAt)) + '</span><span class="meta-item">' + icon('link') + 'Expires ' + esc(fmtDate(req.expiresAt)) + '</span></div>' +
+        '<div class="hero-actions">' +
+          '<button class="btn btn-primary" data-action="open-tenant" data-id="' + req.id + '">Preview tenant view' + icon('arrowRight') + '</button>' +
+          '<button class="btn btn-ghost" data-action="copy-link" data-id="' + req.id + '">' + icon('copy') + 'Copy private link</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="seal-wrap"><div class="seal-ring">' + icon('clock') + '</div><span class="seal-caption">' + esc(daysLeft(req.expiresAt)) + '</span></div>' +
+    '</div>' +
+  '</section>';
+}
+
+function receiptHero(req) {
+  const result = req.result || { outcome: 'meets', threshold: thresholdFor(req.rent), sharedAt: req.respondedAt, method: 'Device-side eligibility check', signature: 'ntk_sim_demo' };
+  const meets = result.outcome === 'meets';
+  const sig = result.signature || 'ntk_sim_demo';
+  const shortSig = sig.length > 22 ? sig.slice(0, 15) + '…' + sig.slice(-5) : sig;
+  return '<section class="receipt" data-od-id="signed-result-card">' +
+    '<div class="receipt-head">' +
+      '<div class="seal ' + (meets ? '' : 'no') + '">' + icon(meets ? 'check' : 'x') + '</div>' +
+      '<div>' +
+        '<p class="eyebrow">Signed result · Simulated signature</p>' +
+        '<h2>' + esc(firstName(req.applicant)) + (meets ? ' meets' : ' does not meet') + ' the 3× rent requirement.</h2>' +
+        '<p class="receipt-meta">Shared ' + esc(fmtDateTime(result.sharedAt)) + ' · Request ' + esc(req.ref) + '</p>' +
+      '</div>' +
+    '</div>' +
+    '<div class="result-grid">' +
+      '<div><span>Monthly rent</span><strong>' + money(req.rent) + '</strong><small>Set by you</small></div>' +
+      '<div><span>3× threshold</span><strong>' + money(result.threshold || thresholdFor(req.rent)) + '</strong><small>Derived from rent</small></div>' +
+      '<div><span>Result</span><strong class="' + (meets ? 'yes' : 'no') + '">' + (meets ? 'Yes' : 'No') + '</strong><small>' + (meets ? 'Income meets bar' : 'Income below bar') + '</small></div>' +
+    '</div>' +
+    '<div class="receipt-scope">' +
+      '<div><span class="scope-label">' + icon('check') + 'Shared by tenant</span><p>Eligibility result, request ID, timestamp, and check method.</p></div>' +
+      '<div><span class="scope-label">' + icon('lock') + 'Stayed private</span><p>Income amount, balances, transactions, and documents.</p></div>' +
+    '</div>' +
+    '<p class="receipt-method">Check method: ' + esc(result.method || 'Device-side eligibility check') + ' (simulated)</p>' +
+    '<div class="signature-row">' +
+      '<div class="sig-copy"><span class="sig-label">Simulated signature</span><code title="' + esc(sig) + '">' + esc(shortSig) + '</code></div>' +
+      '<button class="icon-btn" data-action="copy-signature" data-id="' + req.id + '" aria-label="Copy simulated signature">' + icon('copy') + '</button>' +
+    '</div>' +
+    '<p class="sim-disclaimer">Demo only. This signature and the device-side check are simulated; this is not a zero-knowledge proof or a production certificate.</p>' +
+    '<div class="receipt-actions">' +
+      '<button class="btn btn-ghost" data-action="copy-summary" data-id="' + req.id + '">' + icon('copy') + 'Copy result summary</button>' +
+      '<a class="btn btn-ghost" href="#/requests">Back to requests</a>' +
+    '</div>' +
+  '</section>';
+}
+
+function closedHero(req) {
+  const declined = req.status === 'declined';
+  return '<section class="focus-card" data-od-id="request-status-card">' +
+    '<div class="hero-split">' +
+      '<div>' +
+        '<p class="eyebrow"><span class="dot"></span>' + (declined ? 'Declined' : 'Expired') + '</p>' +
+        '<h2>' + (declined ? esc(firstName(req.applicant)) + ' declined to share.' : 'This request expired.') + '</h2>' +
+        '<p class="hero-copy">' + (declined
+          ? 'No financial data was shared. You can see that the request was declined, but not why.'
+          : 'The private link closed on ' + esc(fmtDate(req.expiresAt)) + ' before a result was shared. No eligibility result was sent.') + '</p>' +
+        '<div class="hero-meta"><span class="meta-item">' + icon('clock') + (declined ? 'Declined ' + esc(relative(req.respondedAt)) : 'Closed ' + esc(fmtDate(req.expiresAt))) + '</span><span class="meta-item">' + icon('lock') + 'No income data shared</span></div>' +
+        '<div class="hero-actions">' +
+          '<button class="btn btn-primary" data-action="open-create" data-applicant="' + esc(req.applicant) + '" data-email="' + esc(req.email || '') + '" data-unit="' + esc(req.unit) + '" data-rent="' + req.rent + '">' + icon('plus') + 'Send a new request</button>' +
+          '<a class="btn btn-ghost" href="#/requests">Back to requests</a>' +
+        '</div>' +
+      '</div>' +
+      '<div class="seal-wrap"><div class="seal-ring">' + icon(declined ? 'lock' : 'clock') + '</div><span class="seal-caption">' + (declined ? 'Declined privately' : 'Link closed') + '</span></div>' +
+    '</div>' +
+  '</section>';
+}
+
+function detailView(req) {
+  if (!req) {
+    return '<div class="detail-top"><a class="back" href="#/requests">' + icon('arrowLeft') + 'All requests</a></div>' +
+      '<div class="panel"><div class="empty"><div class="empty-mark">' + icon('search') + '</div><h3>Request not found</h3><p>This demo request may have been reset. Return to the dashboard to see the current sample workspace.</p><a class="btn btn-primary" href="#/requests">Back to requests</a></div></div>';
+  }
+  const meta = STATUS_META[req.status] || STATUS_META.pending;
+  const createdBanner = ui.justCreated === req.id ? '<div class="banner success" role="status">' + icon('check') +
+    '<div class="banner-copy"><strong>Private request ready</strong><p>Share the link with ' + esc(firstName(req.applicant)) + ', or preview the tenant view to follow the flow.</p></div>' +
+    '<button class="icon-btn" data-action="dismiss-created" aria-label="Dismiss notification">' + icon('x') + '</button></div>' : '';
+  const hero = req.status === 'pending' ? pendingHero(req)
+    : (req.status === 'approved' || req.status === 'not_met') ? receiptHero(req) : closedHero(req);
+  return '<div class="detail-top"><a class="back" href="#/requests">' + icon('arrowLeft') + 'All requests</a><span class="crumb-ref">/ ' + esc(req.ref) + '</span></div>' +
+    createdBanner +
+    '<header class="detail-head" data-od-id="request-detail">' +
+      '<div class="identity">' +
+        '<span class="avatar avatar-lg" aria-hidden="true">' + esc(initials(req.applicant)) + '</span>' +
+        '<div><div class="identity-title"><h1>' + esc(req.applicant) + '</h1>' + statusChip(req.status) + '</div>' +
+        '<p class="meta"><span>' + esc(req.unit) + '</span><span class="sep">·</span><span>Juniper House</span><span class="sep">·</span><span>' + esc(req.ref) + '</span></p></div>' +
+      '</div>' +
+      '<div class="detail-side-note">' + icon('clock') + (req.status === 'pending' ? daysLeft(req.expiresAt) : req.status === 'expired' ? 'Expired ' + fmtDate(req.expiresAt) : req.status === 'declined' ? 'Declined ' + fmtDate(req.respondedAt || req.expiresAt) : 'Result shared ' + fmtDate((req.result && req.result.sharedAt) || req.respondedAt || req.expiresAt)) + '</div>' +
+    '</header>' +
+    '<div class="detail-grid">' +
+      '<div class="stack">' + hero +
+        '<section class="card" data-od-id="request-timeline"><div class="card-head"><div><h3>Activity</h3><p class="card-sub">Request events only — never tenant financial data.</p></div></div>' + timelineHTML(req) + '</section>' +
+      '</div>' +
+      '<aside class="detail-aside">' +
+        '<section class="card" data-od-id="request-summary">' +
+          '<h3>Request details</h3>' +
+          '<div class="rent-highlight"><span>Monthly rent you set</span><strong>' + money(req.rent) + '</strong></div>' +
+          '<dl class="dl">' +
+            '<div><dt>Eligibility rule</dt><dd>3× monthly rent</dd></div>' +
+            '<div><dt>Income threshold</dt><dd>' + money(thresholdFor(req.rent)) + '/mo</dd></div>' +
+            '<div><dt>Applicant email</dt><dd class="mono">' + esc(req.email || 'Not provided') + '</dd></div>' +
+            '<div><dt>Request ID</dt><dd class="mono">' + esc(req.ref) + '</dd></div>' +
+            '<div><dt>Sent</dt><dd>' + esc(fmtDateTime(req.createdAt)) + '</dd></div>' +
+            '<div><dt>Expires</dt><dd>' + esc(fmtDate(req.expiresAt)) + '</dd></div>' +
+          '</dl>' +
+          '<p class="note">Threshold = rent × 3. It is a landlord-set policy calculation, not the applicant’s actual income.</p>' +
+        '</section>' +
+        '<section class="card" data-od-id="privacy-boundary">' +
+          '<h3>Privacy boundary</h3>' +
+          '<div class="privacy-block"><div class="mini-head">You can see</div><ul class="mini-list"><li>' + icon('check') + 'Eligibility yes or no</li><li>' + icon('check') + 'Timestamp and check method</li></ul></div>' +
+          '<div class="privacy-block"><div class="mini-head">You never see</div><ul class="mini-list private"><li>' + icon('lock') + 'Income amount</li><li>' + icon('lock') + 'Balances and transactions</li><li>' + icon('lock') + 'Statements and documents</li></ul></div>' +
+          '<p class="note">No cross-landlord tracking, no global tenant ID. Each result is scoped to this request.</p>' +
+          '<button class="text-link" data-action="open-privacy">How privacy works' + icon('arrowRight') + '</button>' +
+        '</section>' +
+        (req.status === 'pending' ? '<section class="card" data-od-id="request-link"><h3>Private link</h3><p class="card-sub">Scoped to this request. No tenant account or global identifier.</p><div class="link-field"><code>#/tenant/' + req.id + '</code><button class="icon-btn" data-action="copy-link" data-id="' + req.id + '" aria-label="Copy private link">' + icon('copy') + '</button></div><p class="note">Demo link only — no email is sent. ' + esc(daysLeft(req.expiresAt)) + '.</p></section>' : '') +
+      '</aside>' +
+    '</div>' +
+    '<footer class="app-foot"><span>Need-to-Know · HackHarvard 2026 demo</span><span>Prototype only — synthetic data, no bank connections. Demo links; checks and signatures simulated.</span></footer>';
+}
+
+function localCard(req) {
+  const threshold = thresholdFor(req.rent);
+  const meets = DEMO_INCOME >= threshold;
+  return '<section class="card local-card" data-od-id="private-demo-card">' +
+    '<div class="local-head"><span class="pill">' + icon('lock') + 'On this device</span><span class="local-tag">Simulated</span></div>' +
+    '<h2>Your private demo data</h2>' +
+    '<p class="card-sub">Only you can see this. It’s synthetic sample data for the prototype.</p>' +
+    '<div class="local-amount"><span>Monthly income</span><strong>' + money(DEMO_INCOME) + '</strong></div>' +
+    '<div class="local-row"><span>3× rent requirement</span><strong>' + money(threshold) + '</strong></div>' +
+    '<div class="local-result ' + (meets ? '' : 'below') + '">' + icon(meets ? 'check' : 'info') + (meets ? 'Meets the requirement' : 'Below the requirement') + '</div>' +
+    '<p class="note">This amount, your balances, and your transactions stay on this device. Only a yes/no result and verification metadata can be shared.</p>' +
+  '</section>';
+}
+
+function tenantPending(req) {
+  const checking = ui.checking === req.id;
+  const threshold = thresholdFor(req.rent);
+  const meets = DEMO_INCOME >= threshold;
+  return '<div class="tenant-grid">' +
+    '<section class="card request-card" data-od-id="tenant-request-card">' +
+      '<div class="request-top">' +
+        '<div class="property-lockup"><span class="avatar" aria-hidden="true">JH</span><div><strong>Juniper House</strong><span>Property management · ' + esc(req.unit) + '</span></div></div>' +
+        '<span class="chip pending">Waiting on you</span>' +
+      '</div>' +
+      '<div class="question-block">' +
+        '<p class="eyebrow"><span class="dot"></span>The question</p>' +
+        '<h2>Does your income meet 3× the monthly rent?</h2>' +
+        '<div class="equation">' +
+          '<div><span>Monthly rent</span><strong>' + money(req.rent) + '</strong></div>' +
+          '<div class="op">× 3</div>' +
+          '<div class="eq-result"><span>Your income bar</span><strong>' + money(threshold) + '</strong></div>' +
+        '</div>' +
+        '<p class="question-note">This bar is set by the landlord. It is not a request for your actual income — and your income amount is never shared.</p>' +
+      '</div>' +
+      '<div class="request-meta"><span>' + icon('clock') + 'Link expires ' + esc(fmtDate(req.expiresAt)) + '</span><span>' + icon('link') + 'Scoped to this one request</span></div>' +
+    '</section>' +
+    localCard(req) +
+    '<section class="card choice-card" data-od-id="consent-card">' +
+      '<h2>' + (checking ? 'Checking on this device…' : 'Choose what happens next') + '</h2>' +
+      (checking ? (
+        '<div class="processing" role="status" aria-live="polite">' +
+          '<div class="process-seal"><span class="spinner"></span></div>' +
+          '<h3>Nothing is leaving this page.</h3>' +
+          '<p>Comparing your private demo income with the ' + money(threshold) + ' bar. Your amount, balances, and transactions stay here.</p>' +
+          '<div class="process-bar"><span></span></div>' +
+        '</div>'
+      ) : (
+        '<p class="card-sub">If you approve, Juniper House receives the result of the check plus the metadata below. Nothing else.</p>' +
+        '<div class="boundary">' +
+          '<div class="shared"><h3>' + icon('check') + 'Shared</h3><ul><li>Yes or no eligibility result</li><li>Request ID and timestamp</li><li>Device-side check method</li></ul></div>' +
+          '<div class="private"><h3>' + icon('lock') + 'Stays private</h3><ul><li>Your income amount</li><li>Balances and transactions</li><li>Statements and documents</li><li>Bank or employer details</li></ul></div>' +
+        '</div>' +
+        '<label class="consent" for="consentCheck"><input type="checkbox" id="consentCheck"><span><strong>I agree to share only</strong> my eligibility result and verification metadata for this request.</span></label>' +
+        '<div class="choice-actions">' +
+          '<button class="btn btn-primary" id="approveBtn" data-action="approve" disabled>' + (meets ? 'Approve &amp; share result' : 'Share “does not meet” result') + icon('arrowRight') + '</button>' +
+          '<button class="btn btn-ghost danger-text" data-action="decline-request">Decline request</button>' +
+        '</div>' +
+        '<p class="sim-note"><strong>Demo disclosure.</strong> The device check and signature are simulated. This is not a zero-knowledge proof, a production audit, or a certified verification service.</p>'
+      )) +
+    '</section>' +
+  '</div>';
+}
+
+function tenantOutcome(req) {
+  const shared = req.status === 'approved' || req.status === 'not_met';
+  const declined = req.status === 'declined';
+  const meets = req.result && req.result.outcome === 'meets';
+  const heading = shared
+    ? (meets ? 'You meet the 3× rent requirement.' : 'You shared that your income does not meet the requirement.')
+    : declined ? 'You declined to share.' : 'This request has expired.';
+  const eyebrow = shared ? 'Result shared · Simulated signature' : declined ? 'Request declined' : 'Link closed';
+  const copy = shared
+    ? 'Juniper House can now see only your eligibility result and the metadata below. Your actual income, balances, transactions, and documents stayed on this device.'
+    : declined
+      ? 'Juniper House will see only that you declined. No income, balances, transactions, or documents were shared.'
+      : 'The private link closed before a result was shared. No eligibility result was sent to Juniper House.';
+  const whenLabel = shared ? 'Shared' : declined ? 'Declined' : 'Closed';
+  const whenValue = shared ? req.result.sharedAt : declined ? req.respondedAt : req.expiresAt;
+  const sig = shared && req.result ? req.result.signature : '';
+  const shortSig = sig ? (sig.length > 24 ? sig.slice(0, 15) + '…' + sig.slice(-5) : sig) : 'Not issued';
+  return '<p class="sr-only" role="status">' + (shared ? 'Result shared with Juniper House.' : declined ? 'Request declined. No financial data was shared.' : 'This request has expired.') + '</p>' +
+  '<div class="tenant-receipt receipt" data-od-id="tenant-result">' +
+    '<div class="receipt-head">' +
+      '<div class="seal ' + (shared ? (meets ? '' : 'no') : 'neutral') + '">' + icon(shared ? (meets ? 'check' : 'x') : declined ? 'lock' : 'clock') + '</div>' +
+      '<div>' +
+        '<p class="eyebrow">' + eyebrow + '</p>' +
+        '<h2>' + heading + '</h2>' +
+        '<p class="receipt-meta">Request ' + esc(req.ref) + ' · ' + esc(req.unit) + '</p>' +
+      '</div>' +
+    '</div>' +
+    '<p class="hero-copy" style="max-width:60ch">' + copy + '</p>' +
+    '<div class="meta-grid">' +
+      '<div><span>Request</span><strong class="mono">' + esc(req.ref) + '</strong></div>' +
+      '<div><span>' + whenLabel + '</span><strong>' + esc(fmtDateTime(whenValue)) + '</strong></div>' +
+      '<div><span>Method</span><strong>' + (shared ? 'Device-side check (simulated)' : 'No check shared') + '</strong></div>' +
+      '<div><span>Signature</span><strong class="mono" title="' + esc(sig) + '">' + esc(shortSig) + '</strong></div>' +
+    '</div>' +
+    '<div class="receipt-scope">' +
+      '<div><span class="scope-label">' + icon('check') + 'Juniper House can see</span><p>' + (shared ? 'Your yes/no eligibility result, request ID, timestamp, and check method.' : declined ? 'Only that you declined this request.' : 'No result — the request expired.') + '</p></div>' +
+      '<div><span class="scope-label">' + icon('lock') + 'They cannot see</span><p>Income amount, balances, transactions, documents, or bank details.</p></div>' +
+    '</div>' +
+    '<div class="tenant-note">' + icon('info') + 'This request is scoped to Juniper House. No global tenant profile or cross-landlord history was created.</div>' +
+    '<p class="sim-disclaimer">Demo only. The signature and device-side check are simulated. This is not a zero-knowledge proof, a production audit, or a certified verification service.</p>' +
+    '<div class="receipt-actions">' +
+      '<button class="btn btn-primary" data-action="return-landlord" data-id="' + req.id + '">Return to landlord view' + icon('arrowRight') + '</button>' +
+      (shared ? '<button class="btn btn-ghost" data-action="copy-summary" data-id="' + req.id + '">' + icon('copy') + 'Copy shared receipt</button>' : '<a class="btn btn-ghost" href="#/requests">Back to requests</a>') +
+    '</div>' +
+  '</div>';
+}
+
+function tenantView(req) {
+  if (!req) {
+    return '<div class="tenant-topline"><span class="pill">' + icon('lock') + 'Private tenant view</span><span class="tenant-demo">Demo mode</span></div>' +
+      '<header class="page-head"><div><p class="eyebrow"><span class="dot"></span>No active request</p><h1>There’s nothing to review right now.</h1><p class="lede">No private request is open for this demo link. It may have been reset or mistyped. Switch to the landlord view to create one.</p></div></header>' +
+      '<button class="btn btn-primary" data-action="set-role" data-role="landlord">' + icon('arrowLeft') + 'Back to landlord view</button>';
+  }
+  const pending = req.status === 'pending';
+  const title = pending ? 'A quick income check for ' + req.unit + '.' : req.status === 'approved' || req.status === 'not_met' ? 'Your result is shared.' : req.status === 'declined' ? 'This request is closed.' : 'This link has closed.';
+  const lede = pending
+    ? 'Juniper House asked one question. You decide whether to share the answer.'
+    : req.status === 'approved' || req.status === 'not_met'
+      ? 'Here is exactly what Juniper House can see — and what stayed on your device.'
+      : req.status === 'declined'
+        ? 'No financial data was shared. Juniper House only sees that you declined.'
+        : 'The private link closed before a result was shared. Nothing was sent.';
+  return '<div class="tenant-topline" data-od-id="tenant-view"><span class="pill">' + icon('lock') + 'Private tenant view</span><span class="tenant-demo">Prototype · not Juniper House’s screen</span></div>' +
+    '<header class="tenant-head">' +
+      '<div><p class="eyebrow"><span class="dot"></span>Request ' + esc(req.ref) + ' · Juniper House</p><h1>' + esc(title) + '</h1><p class="lede">' + esc(lede) + '</p></div>' +
+      '<div class="landlord-lockup"><span class="avatar" aria-hidden="true">JH</span><div><strong>Juniper House</strong><span>' + esc(req.unit) + ' · ' + money(req.rent) + '/mo</span></div></div>' +
+    '</header>' +
+    (pending ? tenantPending(req) : tenantOutcome(req)) +
+    '<footer class="app-foot"><span>Need-to-Know · private tenant link</span><span>Synthetic demo data · demo link · simulated checks and signatures</span></footer>';
+}
+
+function resolveTenant(reqs, routeId) {
+  let req;
+  if (routeId) {
+    req = reqs.find((r) => r.id === routeId) || null;
+    if (!req) return null;
+  } else {
+    req = reqs.find((r) => r.id === state.activeTenantId) || reqs.find((r) => r.status === 'pending') || reqs[0] || null;
+  }
+  if (req) {
+    if (state.activeTenantId !== req.id) { state.activeTenantId = req.id; save(); }
+    if (req.status === 'pending' && !req.viewedAt) { req.viewedAt = new Date().toISOString(); save(); }
+  }
+  return req;
+}
+
+function render() {
+  const r = route();
+  if (ui.justCreated && !(r.view === 'detail' && r.id === ui.justCreated)) ui.justCreated = null;
+  const reqs = liveRequests();
+  const tenantReq = r.view === 'tenant' ? resolveTenant(reqs, r.id) : null;
+  const activeRole = r.view === 'tenant' ? 'tenant' : 'landlord';
+  let content;
+  let title = 'Requests · Need-to-Know';
+  if (r.view === 'detail') {
+    const req = reqs.find((x) => x.id === r.id);
+    content = detailView(req);
+    title = (req ? req.applicant + ' · ' : '') + 'Need-to-Know';
+  } else if (r.view === 'tenant') {
+    content = tenantView(tenantReq);
+    title = 'Your private request · Need-to-Know';
+  } else {
+    content = dashboardView(reqs);
+  }
+  const shellClass = r.view === 'tenant' ? 'main-inner view tenant-main' : 'main-inner view';
+  app.innerHTML = sidebar(activeRole, reqs, tenantReq) + '<main id="main" class="main"><div class="' + shellClass + '">' + content + '</div></main>';
+  document.title = title;
+  const keepScroll = ui.keepScroll;
+  ui.keepScroll = false;
+  if (!keepScroll) window.scrollTo(0, 0);
+}
+
+function updateThreshold() {
+  const input = document.getElementById('rentInput');
+  const out = document.getElementById('thresholdValue');
+  if (!input || !out) return;
+  const n = Number(input.value);
+  out.textContent = n > 0 ? money(thresholdFor(n)) : '$—';
+}
+function openCreate(prefill = {}) {
+  const applicant = document.getElementById('applicantField');
+  const email = document.getElementById('emailField');
+  const unit = document.getElementById('unitField');
+  const rent = document.getElementById('rentInput');
+  const expiry = document.getElementById('expiryField');
+  const error = document.getElementById('createError');
+  applicant.value = prefill.applicant || 'Maya Chen';
+  email.value = prefill.email || '';
+  unit.value = prefill.unit || 'Unit 3B';
+  rent.value = prefill.rent || 2400;
+  expiry.value = '7';
+  const refField = document.getElementById('refField');
+  if (refField) refField.value = 'NTK-' + (maxRef() + 1);
+  error.textContent = '';
+  error.classList.remove('show');
+  updateThreshold();
+  sheet.showModal();
+  setTimeout(() => { try { applicant.focus(); applicant.select(); } catch (e) {} }, 60);
+}
+function closeSheet() { if (sheet.open) sheet.close(); }
+
+function openConfirm(opts, onConfirm) {
+  confirmTitle.textContent = opts.title;
+  confirmBody.textContent = opts.body;
+  confirmOk.textContent = opts.cta || 'Confirm';
+  confirmOk.className = 'btn ' + (opts.tone === 'danger' ? 'btn-danger' : 'btn-primary');
+  pendingConfirm = onConfirm;
+  confirmDialog.showModal();
+}
+
+function openPrivacy() { if (!privacyDialog.open) privacyDialog.showModal(); }
+function closeDialog(el) { if (el && el.open) el.close(); }
+
+function setRole(role) {
+  const r = route();
+  if (role === 'landlord') {
+    ui.justCreated = null;
+    navigate('#/requests');
+    return;
+  }
+  let id = r.view === 'detail' ? r.id : state.activeTenantId;
+  let req = findRequest(id);
+  if (!req) {
+    const reqs = liveRequests();
+    req = reqs.find((x) => x.status === 'pending') || reqs[0] || null;
+  }
+  if (req) {
+    state.activeTenantId = req.id;
+    save();
+    navigate('#/tenant/' + req.id);
+  } else {
+    navigate('#/tenant');
+  }
+}
+
+function approveActive() {
+  if (ui.checking) return;
+  const req = findRequest(state.activeTenantId);
+  if (!req || req.status !== 'pending') return;
+  const consent = document.getElementById('consentCheck');
+  if (!consent || !consent.checked) return;
+  ui.checking = req.id;
+  ui.keepScroll = true;
+  render();
+  const processing = document.querySelector('.processing');
+  if (processing) {
+    const rect = processing.getBoundingClientRect();
+    const top = window.scrollY + rect.top - Math.max(12, (window.innerHeight - rect.height) / 2);
+    window.scrollTo(0, Math.max(0, top));
+  }
+  const startedFor = req.id;
+  setTimeout(() => {
+    if (ui.checking !== startedFor) return;
+    const target = findRequest(startedFor);
+    if (!target || target.status !== 'pending') { ui.checking = null; render(); return; }
+    const threshold = thresholdFor(target.rent);
+    const outcome = DEMO_INCOME >= threshold ? 'meets' : 'below';
+    const now = new Date().toISOString();
+    target.status = outcome === 'meets' ? 'approved' : 'not_met';
+    target.respondedAt = now;
+    target.result = {
+      outcome, threshold, sharedAt: now,
+      method: 'Device-side eligibility check',
+      signature: simSig()
+    };
+    if (ui.notice && ui.notice.id === target.id) ui.notice = null;
+    ui.notice = { id: target.id, type: target.status };
+    ui.checking = null;
+    ui.justCreated = null;
+    save();
+    render();
+    toast('Result shared with Juniper House.');
+  }, 1550);
+}
+
+function declineActive() {
+  const req = findRequest(state.activeTenantId);
+  if (!req || req.status !== 'pending') return;
+  openConfirm({
+    title: 'Decline this request?',
+    body: 'Juniper House will see that you declined. They will not receive your income, balances, transactions, documents, or a reason.',
+    cta: 'Decline request',
+    tone: 'danger'
+  }, () => {
+    const target = findRequest(req.id);
+    if (!target || target.status !== 'pending') return;
+    target.status = 'declined';
+    target.respondedAt = new Date().toISOString();
+    target.result = null;
+    ui.notice = { id: target.id, type: 'declined' };
+    ui.justCreated = null;
+    save();
+    render();
+    toast('Request declined. No financial data was shared.');
+  });
+}
+
+function resetDemo() {
+  openConfirm({
+    title: 'Reset the demo?',
+    body: 'This clears every request you created and restores the five sample requests, including Maya’s pending verification.',
+    cta: 'Reset demo',
+    tone: 'danger'
+  }, () => {
+    state = seedState();
+    save();
+    ui.filter = 'all';
+    ui.query = '';
+    ui.notice = null;
+    ui.justCreated = null;
+    ui.checking = null;
+    if (location.hash && location.hash !== '#/requests') {
+      location.hash = '#/requests';
+    } else {
+      render();
+    }
+    toast('Demo reset to sample data.');
+  });
+}
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-action]');
+  if (!target) return;
+  const action = target.dataset.action;
+  if (action === 'set-role') { event.preventDefault(); setRole(target.dataset.role); return; }
+  if (action === 'open-create') {
+    event.preventDefault();
+    openCreate({
+      applicant: target.dataset.applicant || '',
+      email: target.dataset.email || '',
+      unit: target.dataset.unit || '',
+      rent: target.dataset.rent || ''
+    });
+    return;
+  }
+  if (action === 'open-tenant') {
+    event.preventDefault();
+    const req = findRequest(target.dataset.id);
+    if (req) { state.activeTenantId = req.id; save(); ui.justCreated = null; navigate('#/tenant/' + req.id); }
+    return;
+  }
+  if (action === 'return-landlord') {
+    event.preventDefault();
+    const req = findRequest(target.dataset.id);
+    navigate(req ? '#/request/' + req.id : '#/requests');
+    return;
+  }
+  if (action === 'copy-link') {
+    event.preventDefault();
+    const req = findRequest(target.dataset.id);
+    if (!req) return;
+    copyText(tenantLink(req.id)).then((ok) => toast(ok ? 'Private tenant link copied.' : 'Could not copy the link. Select it from the request details.'));
+    return;
+  }
+  if (action === 'copy-summary') {
+    event.preventDefault();
+    const req = findRequest(target.dataset.id);
+    if (!req || !req.result) return;
+    copyText(summaryText(req)).then((ok) => toast(ok ? 'Result summary copied — no income data included.' : 'Could not copy the summary.'));
+    return;
+  }
+  if (action === 'copy-signature') {
+    event.preventDefault();
+    const req = findRequest(target.dataset.id);
+    if (!req || !req.result) return;
+    copyText(req.result.signature).then((ok) => toast(ok ? 'Simulated signature copied.' : 'Could not copy the signature.'));
+    return;
+  }
+  if (action === 'filter') {
+    ui.filter = target.dataset.filter || 'all';
+    renderRows();
+    return;
+  }
+  if (action === 'clear-filters') {
+    ui.filter = 'all';
+    ui.query = '';
+    render();
+    return;
+  }
+  if (action === 'clear-search') {
+    ui.query = '';
+    const input = document.getElementById('searchInput');
+    if (input) { input.value = ''; input.focus(); }
+    renderRows();
+    return;
+  }
+  if (action === 'dismiss-notice') { ui.notice = null; render(); return; }
+  if (action === 'dismiss-created') { ui.justCreated = null; render(); return; }
+  if (action === 'open-privacy') { event.preventDefault(); openPrivacy(); return; }
+  if (action === 'close-dialog') { closeDialog(target.closest('dialog')); return; }
+  if (action === 'close-sheet') { closeSheet(); return; }
+  if (action === 'approve') { approveActive(); return; }
+  if (action === 'decline-request') { declineActive(); return; }
+  if (action === 'reset-demo') { resetDemo(); return; }
+});
+
+document.addEventListener('input', (event) => {
+  if (event.target.id === 'searchInput') {
+    ui.query = event.target.value;
+    renderRows();
+  } else if (event.target.id === 'rentInput') {
+    updateThreshold();
+  }
+});
+document.addEventListener('change', (event) => {
+  if (event.target.id === 'consentCheck') {
+    const btn = document.getElementById('approveBtn');
+    if (btn) btn.disabled = !event.target.checked;
+  }
+});
+
+const skipLink = document.querySelector('.skip');
+if (skipLink) {
+  skipLink.addEventListener('click', (event) => {
+    event.preventDefault();
+    const main = document.getElementById('main');
+    if (!main) return;
+    main.setAttribute('tabindex', '-1');
+    main.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  });
+}
+document.querySelectorAll('[data-close-sheet]').forEach((btn) => btn.addEventListener('click', closeSheet));
+document.querySelectorAll('[data-close-dialog]').forEach((btn) => btn.addEventListener('click', () => closeDialog(btn.closest('dialog'))));
+document.querySelectorAll('[data-confirm-cancel]').forEach((btn) => btn.addEventListener('click', () => { pendingConfirm = null; closeDialog(confirmDialog); }));
+confirmOk.addEventListener('click', () => {
+  const fn = pendingConfirm;
+  pendingConfirm = null;
+  closeDialog(confirmDialog);
+  if (fn) fn();
+});
+sheet.addEventListener('click', (event) => {
+  if (event.target === sheet) closeSheet();
+});
+[confirmDialog, privacyDialog].forEach((dialog) => {
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) closeDialog(dialog);
+  });
+});
+
+createForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const applicant = document.getElementById('applicantField');
+  const email = document.getElementById('emailField');
+  const unit = document.getElementById('unitField');
+  const rent = document.getElementById('rentInput');
+  const expiry = document.getElementById('expiryField');
+  const error = document.getElementById('createError');
+  const name = applicant.value.trim();
+  const rentValue = Number(rent.value);
+  error.classList.remove('show');
+  if (!name) {
+    error.textContent = 'Add the applicant’s name before creating the request.';
+    error.classList.add('show');
+    applicant.focus();
+    return;
+  }
+  if (!Number.isFinite(rentValue) || rentValue < 100) {
+    error.textContent = 'Enter a monthly rent of at least $100.';
+    error.classList.add('show');
+    rent.focus();
+    return;
+  }
+  if (rentValue > 50000) {
+    error.textContent = 'Keep the demo rent under $50,000 per month.';
+    error.classList.add('show');
+    rent.focus();
+    return;
+  }
+  const now = Date.now();
+  const days = Number(expiry.value) || 7;
+  const req = {
+    id: 'req_' + now.toString(36),
+    ref: 'NTK-' + (maxRef() + 1),
+    applicant: name,
+    email: email.value.trim(),
+    unit: unit.value,
+    rent: Math.round(rentValue),
+    status: 'pending',
+    createdAt: new Date(now).toISOString(),
+    expiresAt: new Date(now + days * 86400000).toISOString(),
+    viewedAt: null,
+    respondedAt: null,
+    result: null
+  };
+  state.requests.unshift(req);
+  state.activeTenantId = req.id;
+  ui.filter = 'all';
+  ui.query = '';
+  ui.notice = null;
+  ui.justCreated = req.id;
+  save();
+  closeSheet();
+  navigate('#/request/' + req.id);
+  toast('Private request created. Preview the tenant view to continue.');
+});
+
+window.addEventListener('hashchange', render);
+render();
+</script>
+</body>
+</html>
