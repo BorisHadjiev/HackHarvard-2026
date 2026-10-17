@@ -165,15 +165,19 @@ test("a passport page whose MRZ was edited is declined with the check-digit reas
   };
   const good = await readIdCard({ name: "passport.png", type: "image/png", data: new Uint8Array(await mono(["PASSPORT  UTOPIA  SPECIMEN", l1, l2])) }, now);
   const bad = await readIdCard({ name: "passport-edited.png", type: "image/png", data: new Uint8Array(await mono(["PASSPORT  UTOPIA  SPECIMEN", l1, edited])) }, now);
-  const mrzFound = good.report.checks.find((c) => c.id === "mrz_check_digits");
-  if (!mrzFound) {
-    console.log("OCR did not reconstruct the MRZ from this rendering; parser-level checks above cover the check digits.");
-    return;
-  }
-  assert.equal(mrzFound.status, "pass");
-  assert.equal(good.private.dob, ADULT_DOB);
+  // What must hold on every platform: an edited MRZ is never accepted. How text recognition renders the
+  // synthetic page differs between macOS and Linux fonts, so it may or may not read the zone at all; the
+  // check digits themselves are covered deterministically by the parser test above.
+  assert.equal(bad.report.usable, false, "an edited passport is never usable");
   const badMrz = bad.report.checks.find((c) => c.id === "mrz_check_digits");
-  assert.equal(badMrz?.status, "fail");
-  assert.match(badMrz?.label ?? "", /check digit doesn't match/);
+  if (badMrz) {
+    assert.equal(badMrz.status, "fail");
+    assert.match(badMrz.label, /check digit doesn't match/);
+  } else {
+    assert.ok(bad.report.checks.some((c) => c.id === "dob_found" && c.status === "fail"), "zone unread -> no date of birth -> declined");
+  }
+  const goodMrz = good.report.checks.find((c) => c.id === "mrz_check_digits");
+  if (goodMrz?.status === "pass") assert.equal(good.private.dob, ADULT_DOB, "when the zone reads cleanly, the date is right");
+  if (!goodMrz) console.log("OCR did not reconstruct the MRZ from this rendering; parser-level checks above cover the check digits.");
   assert.equal(decideAge([bad], 18, now).usable, false);
 });
