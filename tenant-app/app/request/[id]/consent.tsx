@@ -460,10 +460,11 @@ function AgeConsent({ request, portal, tenants, recordedAnswer = null, recordedE
 
       {!closed && (
         <section className="card">
-          <label htmlFor="id-document">
+          <label htmlFor="id-document" className="file-pick">
             Photo or PDF of your ID
             <input
               id="id-document"
+              className="sr-only"
               type="file"
               accept="application/pdf,image/png,image/jpeg,image/webp,image/heic,image/heif"
               disabled={busy || checking}
@@ -473,9 +474,9 @@ function AgeConsent({ request, portal, tenants, recordedAnswer = null, recordedE
                 setPreviewError(null);
               }}
             />
+            <span className="file-button">{file ? (file.type === "application/pdf" ? "PDF selected" : "Photo selected") : "Choose photo or PDF"}</span>
             <span className="hint">A photo or PDF of a driver&apos;s license (the back with the barcode works best), state ID, or passport photo page.</span>
           </label>
-          {file && <p className="meta">{file.type === "application/pdf" ? "PDF selected" : "Photo selected"}</p>}
           <div className="actions">
             <button type="button" className="secondary" onClick={readId} disabled={busy || checking || !file}>
               {checking ? "Reading the ID on this device…" : "Check ID on this device"}

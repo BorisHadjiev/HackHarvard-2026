@@ -153,11 +153,11 @@ export default function Home() {
               <fieldset className="modes">
                 <legend>Question</legend>
                 <label className={kind === "income_to_rent" ? "mode on" : "mode"}>
-                  <input type="radio" name="question-type" checked={kind === "income_to_rent"} onChange={() => setKind("income_to_rent")} />
+                  <input type="radio" name="question-type" value="income_to_rent" checked={kind === "income_to_rent"} onChange={() => setKind("income_to_rent")} />
                   <span>Income ≥ 3× rent</span>
                 </label>
                 <label className={kind === "age_over" ? "mode on" : "mode"}>
-                  <input type="radio" name="question-type" checked={kind === "age_over"} onChange={() => setKind("age_over")} />
+                  <input type="radio" name="question-type" value="age_over" checked={kind === "age_over"} onChange={() => setKind("age_over")} />
                   <span>Age 18+</span>
                 </label>
               </fieldset>
