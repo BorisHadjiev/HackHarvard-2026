@@ -4,7 +4,7 @@ import { tenantConfig } from "./config";
 
 export interface Deposit {
   id: string;
-  /** Who paid (employer name or payer id) */
+  /** Payroll label from the deposit description (Nessie has no payer field). */
   payer: string;
   amount: number; // dollars
   date: string; // YYYY-MM-DD
@@ -21,20 +21,21 @@ export type DemoTenant = keyof typeof DEMO_TENANTS;
  * If Nessie is configured (NESSIE_API_KEY + NESSIE_ACCOUNT_<NAME>), uses live Nessie data;
  * otherwise falls back to fixtures so everyone can develop before the key exists.
  *
- * TODO(Angelo): confirm the field names below against the Nessie docs
- * (GET /accounts/{id}/deposits?key=...), then seed both demo accounts (scripts/seed-nessie.ts).
+ * Nessie: GET /accounts/{id}/deposits?key=... returns an array of deposits.
+ * See https://prod.nessieisreal.com/docs (Deposits).
  */
 export async function fetchDeposits(tenant: DemoTenant, now = new Date()): Promise<{ deposits: Deposit[]; source: "nessie" | "fixture" }> {
   const { nessie } = tenantConfig();
   const accountId = nessie.accounts[tenant];
   if (!nessie.apiKey || !accountId) return { deposits: fixtureDeposits(tenant, now), source: "fixture" };
 
-  const res = await fetch(`${nessie.baseUrl}/accounts/${accountId}/deposits?key=${nessie.apiKey}`, { cache: "no-store" });
+  const baseUrl = nessie.baseUrl.replace(/\/+$/, "");
+  const res = await fetch(`${baseUrl}/accounts/${encodeURIComponent(accountId)}/deposits?${new URLSearchParams({ key: nessie.apiKey })}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Nessie returned ${res.status}`);
-  const raw = (await res.json()) as Array<{ _id: string; payee_id?: string; description?: string; amount: number; transaction_date: string }>;
+  const raw = (await res.json()) as Array<{ _id: string; description?: string; amount: number; transaction_date: string }>;
   return {
     source: "nessie",
-    deposits: raw.map((d) => ({ id: d._id, payer: d.description || d.payee_id || "unknown", amount: d.amount, date: d.transaction_date })),
+    deposits: raw.map((d) => ({ id: d._id, payer: d.description || "unknown", amount: d.amount, date: d.transaction_date })),
   };
 }
 
