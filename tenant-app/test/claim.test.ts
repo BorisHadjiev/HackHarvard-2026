@@ -17,7 +17,7 @@ test("builder preserves the real route's entire payload and subject derivation",
   assert.deepEqual(payload, {
     aud: "landlord-a", nonce: "nonce-a", sub: await pairwiseSubject("test-only-secret:maya", "landlord-a"),
     claim: { type: "income_to_rent", rent: 2400, multiple: 3, result: true },
-    evidence: { source: "bank", window_days: 90, method: "recurring deposits, median month" },
+    evidence: { source: "bank", strength: "bank", window_days: 90, method: "recurring deposits, median month" },
     build: { hash: "shared-build", integrity: "passed" },
   });
   assert.ok(!JSON.stringify(payload).includes("8200"));
@@ -33,4 +33,11 @@ test("builder changes subject per audience and tenant while retaining negative a
   assert.notEqual(a.sub, other.sub);
   assert.equal(b.nonce, "nonce-b");
   assert.equal((await buildClaimPayload(request, tenant, { ...income, meets: false }, integrity)).claim.result, false);
+});
+
+test("builder carries document evidence through unchanged and still holds no dollar amounts", async () => {
+  const evidence = { source: "document" as const, strength: "document_bank_matched" as const, window_days: 365, method: "income documents, annualized gross income" };
+  const payload = await buildClaimPayload(request, tenant, { ...income, medianMonthlyIncome: 12168.95 }, integrity, evidence);
+  assert.deepEqual(payload.evidence, evidence);
+  assert.ok(!JSON.stringify(payload).includes("12168"));
 });

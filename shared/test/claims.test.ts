@@ -9,7 +9,7 @@ const payload = (over: Partial<ClaimPayload> = {}): ClaimPayload => ({
   nonce: "nonce-123",
   sub: "pairwise-id",
   claim: { type: "income_to_rent", multiple: 3, rent: 2400, result: true },
-  evidence: { source: "bank", window_days: 90, method: "recurring deposits, median month" },
+  evidence: { source: "bank", strength: "bank", window_days: 90, method: "recurring deposits, median month" },
   build: { hash: "build-abc", integrity: "passed" },
   ...over,
 });
@@ -125,4 +125,34 @@ test("a correctly signed token with missing claim fields is rejected as malforme
     .setExpirationTime("1h")
     .sign(key);
   await expectCode(verifyClaim(token, publicJwk, opts), "malformed");
+});
+
+test("a document-backed claim verifies and keeps its evidence strength", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const evidence = { source: "document" as const, strength: "document_bank_matched" as const, window_days: 365, method: "income documents, annualized gross income" };
+  const claim = await verifyClaim(await signClaim(payload({ evidence }), privateJwk), publicJwk, opts);
+  assert.equal(claim.evidence.strength, "document_bank_matched");
+  assert.equal(claim.evidence.source, "document");
+});
+
+test("a claim from an older build without evidence strength counts as bank-verified", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const key = await importJWK(privateJwk, CLAIM_ALG);
+  const legacy = { ...payload(), evidence: { source: "bank", window_days: 90, method: "recurring deposits, median month" } };
+  const token = await new SignJWT(legacy).setProtectedHeader({ alg: CLAIM_ALG, typ: "JWT" }).setIssuer(CLAIM_ISSUER).setIssuedAt().setExpirationTime("1h").sign(key);
+  assert.equal((await verifyClaim(token, publicJwk, opts)).evidence.strength, "bank");
+});
+
+test("evidence that contradicts itself or uses an unknown strength is rejected as malformed", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const bad = [
+    { source: "document", strength: "bank", window_days: 365, method: "m" }, // documents can't be "bank"
+    { source: "bank", strength: "document_signed", window_days: 90, method: "m" }, // bank data isn't a document
+    { source: "document", window_days: 365, method: "m" }, // documents must say how strong they are
+    { source: "bank", strength: "trust_me", window_days: 90, method: "m" },
+    { source: "upload", strength: "bank", window_days: 90, method: "m" },
+  ];
+  for (const evidence of bad) {
+    await expectCode(verifyClaim(await signClaim(payload({ evidence } as never), privateJwk), publicJwk, opts), "malformed");
+  }
 });

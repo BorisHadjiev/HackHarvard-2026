@@ -1,7 +1,7 @@
 // Signing and verifying claims. Owner: Sam.
 // Rule: never hand-roll crypto. Everything goes through `jose`.
 import { SignJWT, jwtVerify, importJWK, generateKeyPair, exportJWK, type JWK } from "jose";
-import type { ClaimPayload, VerifiedClaim } from "./types";
+import type { ClaimPayload, EvidenceStrength, VerifiedClaim } from "./types";
 
 export const CLAIM_ALG = "EdDSA"; // Ed25519 keys
 export const CLAIM_ISSUER = "need-to-know-tenant-app";
@@ -13,6 +13,17 @@ export const CLAIM_TTL_SECONDS = 7 * 24 * 60 * 60;
  * Trade-off: a claim lives between 6 and 7 days, depending on the time of day it was signed.
  */
 export const IAT_ROUNDING_SECONDS = 24 * 60 * 60;
+
+/** Every evidence strength, strongest first. */
+export const EVIDENCE_STRENGTHS: readonly EvidenceStrength[] = ["bank", "document_signed", "document_bank_matched", "document_unverified"];
+
+/** Plain-English label a landlord sees next to the answer. */
+export const EVIDENCE_LABELS: Record<EvidenceStrength, string> = {
+  bank: "Bank-verified",
+  document_signed: "Signed documents",
+  document_bank_matched: "Documents confirmed by bank",
+  document_unverified: "Documents only, not independently verified",
+};
 
 export type ClaimErrorCode =
   | "bad_signature"
@@ -86,6 +97,8 @@ export async function verifyClaim(token: string, publicJwk: JWK, opts: VerifyOpt
 
   if (!hasClaimShape(payload)) throw new ClaimError("malformed", "Claim is missing required fields");
   const claim = payload as unknown as VerifiedClaim;
+  // Builds from before evidence strength existed only read bank data.
+  if (claim.evidence.strength === undefined) claim.evidence.strength = "bank";
   if (claim.nonce !== opts.expectedNonce) throw new ClaimError("wrong_nonce", "Claim does not answer this request");
   if (opts.trustedBuildHashes.length > 0 && !opts.trustedBuildHashes.includes(claim.build?.hash)) {
     throw new ClaimError("untrusted_build", "Claim came from an unapproved build of the tenant app");
@@ -97,7 +110,11 @@ export async function verifyClaim(token: string, publicJwk: JWK, opts: VerifyOpt
 function hasClaimShape(p: Record<string, unknown>): boolean {
   const c = p.claim as Record<string, unknown> | undefined;
   const b = p.build as Record<string, unknown> | undefined;
+  const e = p.evidence as Record<string, unknown> | undefined;
   return (
+    !!e && (e.source === "bank" || e.source === "document") &&
+    (e.strength === undefined ? e.source === "bank" : EVIDENCE_STRENGTHS.includes(e.strength as EvidenceStrength)) &&
+    (e.source === "bank") === (e.strength === undefined || e.strength === "bank") &&
     typeof p.nonce === "string" &&
     typeof p.sub === "string" &&
     !!c && c.type === "income_to_rent" && typeof c.rent === "number" && typeof c.multiple === "number" && typeof c.result === "boolean" &&

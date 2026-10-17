@@ -149,3 +149,7 @@ ul.plain li { margin: 4px 0; }
   .cols { grid-template-columns: 1fr; }
   button, a.button { width: 100%; }
 }
+
+/* Evidence level under a verdict (Sam). */
+.meta.evidence { margin-top: 4px; }
+.meta.evidence.weak { color: #9a5b00; }

@@ -145,3 +145,23 @@ ul.plain li { margin: 4px 0; }
   .row { flex-direction: column; }
   button, a.button { width: 100%; }
 }
+
+/* Evidence picker and document report (Sam). Uses the tokens above. */
+.modes { border: 0; padding: 0; margin: 0 0 12px; }
+.modes legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.mode { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-weight: 400; }
+.mode.on { border-color: var(--accent); background: #f3f6fe; }
+.mode input, label.inline input { width: auto; margin: 3px 0 0; }
+label.inline { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
+.doc-list, .checks { list-style: none; padding-left: 0; }
+.doc-list { margin-top: 8px; }
+.doc { border-top: 1px solid var(--line); padding: 10px 0 4px; }
+.doc-title { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; }
+.pill { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--wait); color: var(--muted); margin-left: auto; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.bad { background: var(--bad-bg); color: var(--bad); }
+.checks { margin: 4px 0 0; }
+.check { font-size: 14px; color: var(--muted); }
+.check.pass { color: var(--ok); }
+.check.fail { color: var(--bad); }
+.check.warn { color: #9a5b00; }

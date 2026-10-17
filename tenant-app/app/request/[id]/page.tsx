@@ -2,6 +2,7 @@
 import type { VerificationRequest } from "@ntk/shared";
 import { tenantConfig } from "@/lib/config";
 import { DEMO_TENANTS } from "@/lib/nessie";
+import { plaidConfig } from "@/lib/plaid";
 import Consent from "./consent";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export default async function RequestPage({
       <p className="kicker">{request.requesterName}</p>
       <h1>Review this question</h1>
       <p className="sub">Need-to-Know answers it on this device. Your bank data stays here until you approve — and even then, only a yes or no is sent.</p>
-      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} />
+      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} plaidConfigured={plaidConfig().configured} />
     </main>
   );
 }

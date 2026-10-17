@@ -8,13 +8,15 @@ export async function buildClaimPayload(
   tenant: { id: string; secret: string },
   income: IncomeResult,
   integrity: IntegrityResult,
+  /** How the answer was established. Defaults to bank deposits (the original flow). */
+  evidence: ClaimPayload["evidence"] = { source: "bank", strength: "bank", window_days: WINDOW_DAYS, method: METHOD },
 ): Promise<ClaimPayload> {
   return {
     aud: request.audience,
     nonce: request.nonce,
     sub: await pairwiseSubject(`${tenant.secret}:${tenant.id}`, request.audience),
     claim: { type: "income_to_rent", rent: request.question.rent, multiple: request.question.multiple, result: income.meets },
-    evidence: { source: "bank", window_days: WINDOW_DAYS, method: METHOD },
+    evidence,
     build: { hash: integrity.hash, integrity: "passed" },
   };
 }

@@ -32,9 +32,9 @@ export async function POST(req: Request) {
     }
     store.usedNonces.add(request.nonce);
     request.status = "verified";
-    request.result = { answer: claim.claim.result, verifiedAt: new Date().toISOString() };
+    request.result = { answer: claim.claim.result, verifiedAt: new Date().toISOString(), evidence: claim.evidence.strength };
     store.save(); // the used nonce must be on disk before we answer, or a restart would allow a replay
-    return NextResponse.json({ ok: true, answer: claim.claim.result });
+    return NextResponse.json({ ok: true, answer: claim.claim.result, evidence: claim.evidence.strength });
   } catch (err) {
     if (err instanceof ClaimError) {
       return NextResponse.json({ ok: false, code: err.code, message: err.message }, { status: 400 });

@@ -12,6 +12,7 @@ next-env.d.ts
 # Local runtime state: signed release manifest (re-made by `npm run sign-manifest`) and the portal's store.
 tenant-app/build-manifest.json
 .data/
+sample-documents/
 
 .DS_Store
 npm-debug.log*
