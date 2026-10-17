@@ -7,6 +7,7 @@ type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; l
 
 export default function Consent({ request, portal, tenants, recordedAnswer = null }: { request: VerificationRequest; portal: string; tenants: Record<string, string>; recordedAnswer?: boolean | null }) {
   const [tenant, setTenant] = useState(Object.keys(tenants)[0] ?? "");
+  const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [declined, setDeclined] = useState(false);
   const [reply, setReply] = useState<Reply | null>(null);
@@ -40,6 +41,7 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
   }
 
   async function approve() {
+    if (!consent || closed) return;
     setBusy(true);
     setSendError(null);
     setReply(null);
@@ -65,17 +67,18 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
   return (
     <>
       <section className="card">
-        <p className="kicker">They are asking</p>
+        <p className="kicker">The question · {request.requesterName}</p>
         <h2 className="question-line">Is your income at least {q.multiple}× the ${q.rent.toLocaleString("en-US")} monthly rent?</h2>
+        <div className="threshold"><span>Monthly rent · set by landlord</span><strong>${q.rent.toLocaleString("en-US")} <small>× {q.multiple}</small></strong><p>Income requirement: ${(q.rent * q.multiple).toLocaleString("en-US")} / month. Your actual income is never shared.</p></div>
       </section>
 
-      <section className="card">
-        <h2>What they will receive</h2>
+      <section className="card privacy-panel">
+        <p className="kicker">You stay in control</p><h2>Shared with the landlord</h2>
         <ul className="plain">
           <li>One signed yes or no</li>
           <li>The question above, so the answer matches what they asked</li>
         </ul>
-        <h2>What stays private</h2>
+        <h2 className="private-heading">Stays on your device</h2>
         <ul className="plain">
           <li>No documents or statements</li>
           <li>No balances or deposits</li>
@@ -104,9 +107,10 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
             <span className="hint">Sample accounts for the demo. Maya meets a typical 3× rule. Leo does not.</span>
           </label>
           {sendError && <p className="banner bad" role="alert">{sendError}</p>}
+          <label className="consent-check"><input type="checkbox" checked={consent} disabled={busy} onChange={(e) => setConsent(e.target.checked)} /><span>I agree to share only my eligibility result and verification metadata for this request.</span></label>
           <div className="actions">
             <button type="button" className="secondary" onClick={decline} disabled={busy}>Decline</button>
-            <button type="button" onClick={approve} disabled={busy || !tenant}>{busy ? "Checking on this device…" : "Approve"}</button>
+            <button type="button" onClick={approve} disabled={busy || !tenant || !consent}>{busy ? "Checking on this device…" : "Approve & share result →"}</button>
           </div>
           <p className="hint">Approve sends only a yes or no. Decline tells them you declined and sends no financial data.</p>
         </section>
@@ -123,7 +127,7 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
         <section className="card" role="status">
           {reply.ok ? (
             <>
-              <p className="kicker">Sent</p>
+              <span className="seal" aria-hidden="true">✓</span><p className="kicker">Signed result shared</p>
               <p className={reply.answer ? "verdict ok" : "verdict bad"}>{reply.answer ? "Yes — meets the requirement" : "No — does not meet the requirement"}</p>
               <p className="hint">{request.requesterName} now sees that answer. They do not see a dollar amount.</p>
             </>
@@ -140,6 +144,8 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
           )}
         </section>
       )}
+      {closed && <a className="button secondary" href={portal}>Return to landlord portal ↗</a>}
+      <p className="page-footer">Your choice. Your data. Only the answer leaves this device.</p>
     </>
   );
 }

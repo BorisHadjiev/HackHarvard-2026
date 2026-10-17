@@ -8,8 +8,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body>
         <header className="top">
-          <a className="brand" href="/">Need-to-Know</a>
-          <span className="role">Landlord</span>
+          <a className="brand" href="/"><span className="brand-mark" aria-hidden="true">✓</span>Need-to-Know</a>
+          <span className="role"><span className="role-dot" />Landlord workspace</span>
         </header>
         {children}
       </body>
