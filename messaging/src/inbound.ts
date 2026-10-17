@@ -1,4 +1,4 @@
-// Inbound Photon texts. A tenant reply of YES approves the latest request sent to that phone.
+// Inbound Photon texts. YES approves the latest request sent to that phone. NO declines it.
 // The phone is kept only in this process-local map. It is not written onto the request or the claim.
 import { normalizePhone } from "./photon";
 
@@ -36,8 +36,8 @@ function textOf(content: unknown): string | null {
   return null;
 }
 
-/** Photon `message.received` whose plain text is YES. Agent echoes are ignored. */
-export function parseYesReply(payload: unknown): { phone: string } | null {
+/** Plain YES or NO, case-insensitive, with an optional trailing period or exclamation. */
+function parsePlainReply(payload: unknown, word: "yes" | "no"): { phone: string } | null {
   const message = receivedMessage(payload);
   if (!message) return null;
   const sentBy = message.sentBy;
@@ -46,12 +46,22 @@ export function parseYesReply(payload: unknown): { phone: string } | null {
   if (from.kind === "agent") return null;
   if (typeof from.handle !== "string" || !/^[+\d\s().-]+$/.test(from.handle)) return null;
   const text = textOf(message.content);
-  if (!text || !/^yes[.!]?$/i.test(text.trim())) return null;
+  if (!text || !new RegExp(`^${word}[.!]?$`, "i").test(text.trim())) return null;
   try {
     return { phone: normalizePhone(from.handle) };
   } catch {
     return null;
   }
+}
+
+/** Photon `message.received` whose plain text is YES. Agent echoes are ignored. */
+export function parseYesReply(payload: unknown): { phone: string } | null {
+  return parsePlainReply(payload, "yes");
+}
+
+/** Photon `message.received` whose plain text is NO. Agent echoes and any other text are ignored. */
+export function parseNoReply(payload: unknown): { phone: string } | null {
+  return parsePlainReply(payload, "no");
 }
 
 export interface ApproveResult {
@@ -79,5 +89,25 @@ export async function handleInboundYes(
   const requestId = (deps.lookup ?? requestIdForPhone)(yes.phone);
   if (!requestId) return { status: 404, body: { ok: false, code: "unknown_phone" } };
   const result = await deps.approve(requestId);
+  return { status: result.status, body: withoutLocalFigures(result.body) };
+}
+
+/**
+ * A NO declines the latest request texted to that phone.
+ * The phone is looked up in the process-local map and is not returned or stored.
+ * This does not approve and does not sign a claim.
+ */
+export async function handleInboundNo(
+  payload: unknown,
+  deps: {
+    lookup?: (phone: string) => string | undefined;
+    decline: (requestId: string) => Promise<ApproveResult>;
+  },
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  const no = parseNoReply(payload);
+  if (!no) return { status: 200, body: { ignored: true } };
+  const requestId = (deps.lookup ?? requestIdForPhone)(no.phone);
+  if (!requestId) return { status: 404, body: { ok: false, code: "unknown_phone" } };
+  const result = await deps.decline(requestId);
   return { status: result.status, body: withoutLocalFigures(result.body) };
 }
