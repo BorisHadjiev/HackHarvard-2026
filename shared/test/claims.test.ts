@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { SignJWT, importJWK, decodeJwt } from "jose";
-import { generateSigningKeys, signClaim, verifyClaim, pairwiseSubject, ClaimError, CLAIM_TTL_SECONDS, CLAIM_ALG, CLAIM_ISSUER } from "../src/index";
+import { generateSigningKeys, signClaim, verifyClaim, pairwiseSubject, ClaimError, CLAIM_TTL_SECONDS, CLAIM_ALG, CLAIM_ISSUER, claimAnswersQuestion, AGE_EVIDENCE } from "../src/index";
 import type { ClaimPayload } from "../src/index";
 
 const payload = (over: Partial<ClaimPayload> = {}): ClaimPayload => ({
@@ -155,4 +155,52 @@ test("evidence that contradicts itself or uses an unknown strength is rejected a
   for (const evidence of bad) {
     await expectCode(verifyClaim(await signClaim(payload({ evidence } as never), privateJwk), publicJwk, opts), "malformed");
   }
+});
+
+const agePayload = (over: Partial<ClaimPayload> = {}): ClaimPayload => ({
+  aud: "landlord-portal", nonce: "nonce-123", sub: "pairwise-id",
+  claim: { type: "age_over", min_age: 18, result: true },
+  evidence: AGE_EVIDENCE,
+  build: { hash: "build-abc", integrity: "passed" },
+  ...over,
+});
+
+test("an age claim verifies and, decoded, holds exactly the allowed fields and no date, age or name", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const token = await signClaim(agePayload(), privateJwk, new Date("2026-10-17T15:42:00Z"));
+  const claim = await verifyClaim(token, publicJwk, opts);
+  assert.equal(claim.claim.type, "age_over");
+  assert.equal(claim.claim.result, true);
+  const decoded = decodeJwt(token) as Record<string, unknown>;
+  assert.deepEqual(Object.keys(decoded).sort(), ["aud", "build", "claim", "evidence", "exp", "iat", "iss", "nonce", "sub"]);
+  assert.deepEqual(Object.keys(decoded.claim as object).sort(), ["min_age", "result", "type"]);
+  assert.deepEqual(Object.keys(decoded.evidence as object).sort(), ["method", "source", "strength", "window_days"]);
+  assert.deepEqual(decoded.evidence, AGE_EVIDENCE, "evidence is the one fixed block");
+  const text = JSON.stringify({ ...decoded, evidence: undefined });
+  assert.ok(!/\d{4}-\d{2}-\d{2}|\d{2}\/\d{2}\/\d{4}/.test(text), "no dates");
+  assert.ok(!/birth|dob|"age"|years|name|address|license|passport|expir/i.test(text), "no birth, age, name or document words outside the fixed evidence text");
+  assert.equal(decoded.iat, Date.parse("2026-10-17T00:00:00Z") / 1000, "iat is day-rounded");
+});
+
+test("age claims with the wrong evidence or extra fields are rejected as malformed", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const bad: ClaimPayload[] = [
+    agePayload({ evidence: { ...AGE_EVIDENCE, strength: "document_signed" } }),
+    agePayload({ evidence: { ...AGE_EVIDENCE, method: "passport MRZ" } }),
+    agePayload({ evidence: { ...AGE_EVIDENCE, window_days: 1 } }),
+    agePayload({ claim: { type: "age_over", min_age: 18, result: true, age: 34 } as never }),
+    agePayload({ claim: { type: "age_over", min_age: 21, result: true } as never }),
+    agePayload({ claim: { type: "income_to_rent", rent: 2400, multiple: 3, result: true, dob: "1999-01-01" } as never }),
+  ];
+  for (const p of bad) await expectCode(verifyClaim(await signClaim(p, privateJwk), publicJwk, opts), "malformed");
+});
+
+test("claimAnswersQuestion matches type and parameters", () => {
+  const income = { type: "income_to_rent" as const, rent: 2400, multiple: 3 };
+  const age = { type: "age_over" as const, min_age: 18 as const };
+  assert.equal(claimAnswersQuestion({ ...income, result: true }, income), true);
+  assert.equal(claimAnswersQuestion({ ...income, rent: 2500, result: true }, income), false);
+  assert.equal(claimAnswersQuestion({ ...age, result: false }, age), true);
+  assert.equal(claimAnswersQuestion({ ...age, result: true }, income), false);
+  assert.equal(claimAnswersQuestion({ ...income, result: true }, age), false);
 });

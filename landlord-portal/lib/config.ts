@@ -11,5 +11,8 @@ export function portalConfig() {
     tenantPublicJwk: JSON.parse(raw) as JWK,
     // Comma-separated approved build hashes. Empty = skip the check (dev only). Sam fills this in.
     trustedBuildHashes: (process.env.TRUSTED_BUILD_HASHES ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+    // Public keys of banks whose deposit attestations we accept. When any are set, bank-backed
+    // answers must carry a zero-knowledge proof over bank-signed deposits.
+    trustedBankKeys: JSON.parse(process.env.TRUSTED_BANK_KEYS ?? "[]") as JWK[],
   };
 }

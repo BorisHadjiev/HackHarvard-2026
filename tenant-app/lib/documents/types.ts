@@ -2,13 +2,14 @@
 import type { EvidenceStrength } from "@ntk/shared";
 import type { Deposit } from "../nessie";
 
-export type DocumentKind = "bank_statement" | "pay_stub" | "w2" | "form_1040" | "unknown";
+export type DocumentKind = "bank_statement" | "pay_stub" | "w2" | "form_1040" | "id_card" | "unknown";
 
 export const KIND_LABELS: Record<DocumentKind, string> = {
   bank_statement: "Bank statement",
   pay_stub: "Pay stub",
   w2: "W-2",
   form_1040: "Form 1040 tax return",
+  id_card: "Government ID",
   unknown: "Unrecognized document",
 };
 

@@ -741,3 +741,19 @@ label.inline { display: flex; gap: 8px; align-items: flex-start; font-weight: 40
 .check.pass { color: var(--ok); }
 .check.fail { color: var(--bad); }
 .check.warn { color: #9a5b00; }
+.meta.evidence { margin-top: 4px; }
+.meta.evidence.weak { color: #9a5b00; }
+input[type="file"] { max-width: 100%; font-size: 13px; }
+.file-pick { cursor: pointer; }
+.file-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 600;
+}

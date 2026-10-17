@@ -728,3 +728,50 @@ input:focus,select:focus,button:focus-visible,a:focus-visible,summary:focus-visi
 /* Evidence level under a verdict (Sam). */
 .meta.evidence { margin-top: 4px; }
 .meta.evidence.weak { color: #9a5b00; }
+
+/* Question picker on the new-request form. */
+.modes { border: 0; padding: 0; margin: 0 0 8px; }
+.modes legend { font-size: 12px; font-weight: 600; margin: 0 0 8px; padding: 0; }
+label.mode {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+label.mode.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+label.mode input {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  flex: 0 0 auto;
+  padding: 0;
+  margin: 0;
+}
+.request-row .result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  max-width: 190px;
+  flex-shrink: 0;
+}
+.request-row .result .verdict { max-width: 100%; }
+.request-row .result .meta { text-align: right; overflow-wrap: anywhere; }
+
+@media (max-width: 700px) {
+  .request-row .result {
+    align-items: flex-start;
+    max-width: none;
+    margin-left: 49px;
+  }
+  .request-row .result .verdict { margin-left: 0; }
+  .request-row .result .meta { text-align: left; }
+}

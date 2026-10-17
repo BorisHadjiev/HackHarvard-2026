@@ -52,7 +52,7 @@ from a real state DMV. So every age claim in this build carries `strength: "docu
 version reads a mobile driver's license (ISO/IEC 18013-5), which the issuing state signs, and would then carry
 `document_signed`. That's the "what's next" line.
 
-## 3. Claim contract (proposal, needs Sam's OK)
+## 3. Claim contract (accepted by Sam, implemented in `shared/src/types.ts`)
 
 ```ts
 // shared/src/types.ts

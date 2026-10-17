@@ -54,6 +54,23 @@ export async function ocrImage(image: Uint8Array): Promise<{ lines: string[]; co
   return { lines, confidence: Math.round(data.confidence) };
 }
 
+const MRZ_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789<";
+
+/**
+ * Second pass for passports and ID cards: only MRZ characters are allowed, which stops the engine
+ * turning the '<' filler into words. Returns lines that look like MRZ rows (30 or 44 characters).
+ */
+export async function ocrMrzLines(image: Uint8Array): Promise<string[]> {
+  const w = await worker();
+  await w.setParameters({ tessedit_char_whitelist: MRZ_CHARS, preserve_interword_spaces: "1" });
+  try {
+    const { data } = await withTimeout(w.recognize(Buffer.from(image)), "reading the machine-readable zone");
+    return data.text.split("\n").map((l) => l.toUpperCase().replace(/[^A-Z0-9<]/g, "")).filter((l) => l.length >= 28);
+  } finally {
+    await w.setParameters({ tessedit_char_whitelist: "", preserve_interword_spaces: "1" });
+  }
+}
+
 export async function stopOcr() {
   const w = g.__ntkOcr;
   g.__ntkOcr = undefined;

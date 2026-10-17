@@ -2,12 +2,13 @@
 // Landlord portal home. Owner: Boris (UI).
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { EVIDENCE_LABELS, type VerificationRequest } from "@ntk/shared";
+import { EVIDENCE_LABELS, type Question, type VerificationRequest } from "@ntk/shared";
 import { landlordVerdict } from "@/lib/verdict";
 
 type Share = { id: string; link: string };
 
 export default function Home() {
+  const [kind, setKind] = useState<"income_to_rent" | "age_over">("income_to_rent");
   const [rent, setRent] = useState("2400");
   const [multiple, setMultiple] = useState("3");
   const [phone, setPhone] = useState("");
@@ -63,9 +64,10 @@ export default function Home() {
     setFormError(null);
     setCopied(false);
     setCopyError(null);
+    const age = kind === "age_over";
     const rentValue = Number(rent);
     const multipleValue = Number(multiple);
-    if (!Number.isFinite(rentValue) || rentValue <= 0 || !Number.isFinite(multipleValue) || multipleValue <= 0) {
+    if (!age && (!Number.isFinite(rentValue) || rentValue <= 0 || !Number.isFinite(multipleValue) || multipleValue <= 0)) {
       setFormError("Enter a rent and a multiple greater than zero.");
       return;
     }
@@ -74,7 +76,9 @@ export default function Home() {
       const res = await fetch("/api/requests", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ rent: rentValue, multiple: multipleValue, tenantPhone: phone || undefined }),
+        body: JSON.stringify(age
+          ? { type: "age_over", tenantPhone: phone || undefined }
+          : { rent: rentValue, multiple: multipleValue, tenantPhone: phone || undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.link || !data.request?.id) {
@@ -116,7 +120,7 @@ export default function Home() {
   const verified = requests.filter((r) => r.status === "verified").length;
   const visible = requests.filter((r) => {
     const status = r.status === "pending" && Date.parse(r.expiresAt) <= Date.now() ? "expired" : r.status;
-    return (filter === "all" || status === filter) && (r.id + " " + r.requesterName + " " + r.question.rent).toLowerCase().includes(search.toLowerCase());
+    return (filter === "all" || status === filter) && (r.id + " " + r.requesterName + " " + questionSummary(r.question).meta).toLowerCase().includes(search.toLowerCase());
   });
 
   return (
@@ -140,15 +144,29 @@ export default function Home() {
             {!loaded && <p className="empty">Loading requests…</p>}
             {loadError && <p className="banner bad" role="alert">{loadError}</p>}
             {loaded && !loadError && visible.length === 0 && <div className="empty-state"><span className="seal small" aria-hidden="true">✓</span><h3>{requests.length ? "No matching requests" : "Your first answer starts here"}</h3><p>{requests.length ? "Try another filter or search." : "Create a request. The tenant chooses what to share."}</p></div>}
-            <div aria-live="polite">{visible.map((r) => <article className="request-row" key={r.id}><div className="request-mark" aria-hidden="true">↗</div><div className="request-info"><h3>Income eligibility check</h3><p className="meta">Rent ${r.question.rent.toLocaleString("en-US")} / month · {r.question.multiple}× requirement</p><p className="mono">{r.id}</p><details><summary>Request details</summary><p className="meta">{questionLine(r.question.multiple, r.question.rent)}</p><p className="meta">Sent {formatWhen(r.createdAt)} · Expires {formatWhen(r.expiresAt)}</p>{r.result && <p className="meta">Verified {formatWhen(r.result.verifiedAt)}. No private financial evidence received.</p>}{links[r.id] && r.status === "pending" && <a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant consent ↗</a>}</details></div><Status r={r} /></article>)}</div>
+            <div aria-live="polite">{visible.map((r) => <article className="request-row" key={r.id}><div className="request-mark" aria-hidden="true">↗</div><div className="request-info"><h3>{questionSummary(r.question).title}</h3><p className="meta">{questionSummary(r.question).meta}</p><p className="mono">{r.id}</p><details><summary>Request details</summary><p className="meta">{questionSummary(r.question).line}</p><p className="meta">Sent {formatWhen(r.createdAt)} · Expires {formatWhen(r.expiresAt)}</p>{r.result && <p className="meta">{r.question.type === "age_over" ? `Verified ${formatWhen(r.result.verifiedAt)}.` : `Verified ${formatWhen(r.result.verifiedAt)}. No private financial evidence received.`}</p>}{links[r.id] && r.status === "pending" && <a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant consent ↗</a>}</details></div><Status r={r} /></article>)}</div>
             <p className="list-foot">Your rent requirement is public. The tenant’s financial evidence stays private.</p>
           </section>
           <div>
             <form id="new-request" className="card form-card" onSubmit={create}>
-              <p className="kicker">A simple, private check</p><h2>New verification request</h2><p className="hint gap">Ask whether income meets your rent requirement.</p>
+              <p className="kicker">A simple, private check</p><h2>New verification request</h2>
+              <fieldset className="modes">
+                <legend>Question</legend>
+                <label className={kind === "income_to_rent" ? "mode on" : "mode"}>
+                  <input type="radio" name="question-type" value="income_to_rent" checked={kind === "income_to_rent"} onChange={() => setKind("income_to_rent")} />
+                  <span>Income ≥ 3× rent</span>
+                </label>
+                <label className={kind === "age_over" ? "mode on" : "mode"}>
+                  <input type="radio" name="question-type" value="age_over" checked={kind === "age_over"} onChange={() => setKind("age_over")} />
+                  <span>Age 18+</span>
+                </label>
+              </fieldset>
+              <p className="hint gap">{kind === "age_over" ? "Ask whether the tenant is 18 or older." : "Ask whether income meets your rent requirement."}</p>
+              {kind === "income_to_rent" && <>
               <label>Monthly rent ($)<input type="number" min="1" step="1" required value={rent} onChange={(e) => setRent(e.target.value)} aria-label="Monthly rent in dollars" /></label>
               <label>Required income multiple<input type="number" min="0.1" step="any" required value={multiple} onChange={(e) => setMultiple(e.target.value)} aria-label="Required income multiple" /></label>
               <div className="threshold"><span>Requirement · set by you</span><strong>${Number.isFinite(Number(rent) * Number(multiple)) ? (Number(rent) * Number(multiple)).toLocaleString("en-US") : "—"}<small> / month</small></strong><p>Calculated from rent. This is not the tenant’s income.</p></div>
+              </>}
               <label>Tenant phone <span className="optional">optional</span><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 617 555 0123" inputMode="tel" autoComplete="tel" /><span className="hint">Send a text when messaging is connected, or share the link yourself.</span></label>
               {formError && <p className="banner bad" role="alert">{formError}</p>}
               <button className="full" disabled={busy}>{busy ? "Creating…" : "Send verification request →"}</button><p className="hint form-note">The tenant reviews and approves before anything is shared.</p>
@@ -160,6 +178,12 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+// Type-narrowing only (Sam, age-claim contract). Boris owns how an age request is presented.
+function questionSummary(q: Question): { title: string; meta: string; line: string } {
+  if (q.type === "age_over") return { title: "Age 18+", meta: "18 or older", line: "Are you at least 18?" };
+  return { title: "Income eligibility check", meta: `Rent $${q.rent.toLocaleString("en-US")} / month · ${q.multiple}× requirement`, line: questionLine(q.multiple, q.rent) };
 }
 
 function questionLine(multiple: number, rent: number) {
@@ -175,6 +199,7 @@ function formatWhen(iso: string) {
 }
 
 function Status({ r }: { r: VerificationRequest }) {
+  if (r.question.type === "age_over") return <AgeStatus r={r} />;
   const label = landlordVerdict(r);
   if (label === "Declined") {
     const evidence = r.result?.evidence;
@@ -192,9 +217,25 @@ function Status({ r }: { r: VerificationRequest }) {
     return (
       <div role="status">
         <p className={r.result.answer ? "verdict ok" : "verdict bad"}>{label}</p>
-        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}</p>
+        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}{r.result.proof === "zk" ? " · proven in zero knowledge" : ""}</p>
       </div>
     );
   }
   return <p className="verdict wait" role="status">{label}</p>;
+}
+
+function AgeStatus({ r }: { r: VerificationRequest }) {
+  if (r.status === "rejected") return <p className="verdict declined" role="status">Declined</p>;
+  if (r.status === "verified" && r.result) {
+    const evidence = r.result.evidence ?? "document_unverified";
+    const yes = r.result.answer === true;
+    return (
+      <div className="result" role="status">
+        <p className={yes ? "verdict ok" : "verdict bad"}>{yes ? "✓ 18 or older" : "✗ Under 18"}</p>
+        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}</p>
+      </div>
+    );
+  }
+  const expired = r.status === "pending" && Date.parse(r.expiresAt) <= Date.now();
+  return <p className="verdict wait" role="status">{expired ? "Expired" : "Waiting for the tenant"}</p>;
 }

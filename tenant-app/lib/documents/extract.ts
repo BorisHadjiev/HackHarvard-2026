@@ -77,7 +77,7 @@ async function pixelsToPng(img: { data: Uint8ClampedArray; width: number; height
 }
 
 /** Upscale small photos and convert to grayscale: OCR reads 300 DPI-like text much better. */
-async function prepareForOcr(image: Uint8Array): Promise<Uint8Array> {
+export async function prepareForOcr(image: Uint8Array): Promise<Uint8Array> {
   const img = sharp(Buffer.from(image)).rotate(); // honor EXIF orientation from phone cameras
   const meta = await img.metadata();
   const width = meta.width ?? 0;
@@ -115,4 +115,17 @@ export async function extractDocument(file: UploadedFile, trustedSigners: string
     return { lines: res.lines, method: "image_ocr", ocrConfidence: res.confidence };
   }
   throw new Error("Unsupported file type. Use a PDF, PNG, JPEG or WebP.");
+}
+
+/** Page images embedded in a PDF (scans, photos), as PNG, first `maxPages` pages. For barcode reading. */
+export async function extractPageImages(data: Uint8Array, maxPages = 3): Promise<Uint8Array[]> {
+  const doc = await getDocumentProxy(new Uint8Array(data));
+  const out: Uint8Array[] = [];
+  for (let p = 1; p <= Math.min(doc.numPages, maxPages); p++) {
+    for (const img of await extractImages(doc, p)) {
+      if (img.width < 200) continue;
+      out.push(await pixelsToPng(img));
+    }
+  }
+  return out;
 }
