@@ -726,7 +726,8 @@ input:focus,select:focus,button:focus-visible,a:focus-visible,summary:focus-visi
 .modes legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
 .mode { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; cursor: pointer; font-weight: 400; }
 .mode.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
-.mode input, label.inline input { width: auto; margin: 3px 0 0; }
+.mode input, label.inline input { display: inline-block; width: 18px; height: 18px; min-height: 18px; flex: 0 0 auto; padding: 0; margin: 2px 0 0; }
+.mode, label.inline { flex-direction: row; font-size: 14px; }
 label.inline { display: flex; gap: 8px; align-items: flex-start; font-weight: 400; }
 .doc-list, .checks { list-style: none; padding-left: 0; }
 .doc-list { margin-top: 8px; }
