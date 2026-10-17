@@ -1,0 +1,57 @@
+# Runs on every push to any branch and on every pull request.
+# Green check = unit tests pass, both apps build, and the end-to-end smoke test passes.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch: # "Run workflow" button in the Actions tab
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Generate throwaway signing keys (CI only)
+        run: npm run keys
+
+      - name: Unit tests (shared + tenant-app)
+        run: npm test
+
+      - name: Build both apps
+        run: npm run build
+
+      - name: Start both apps
+        run: |
+          npm run start -w landlord-portal > portal.log 2>&1 &
+          npm run start -w tenant-app > tenant.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3000/api/requests > /dev/null && curl -sf http://localhost:3001/ > /dev/null && exit 0
+            sleep 1
+          done
+          echo "Apps did not start"; cat portal.log tenant.log; exit 1
+
+      - name: End-to-end smoke test
+        run: npm run smoke
+
+      - name: Collusion test (once it exists)
+        if: hashFiles('scripts/collusion-test.ts') != ''
+        run: npm run collusion
+
+      - name: Server logs (on failure)
+        if: failure()
+        run: cat portal.log tenant.log || true

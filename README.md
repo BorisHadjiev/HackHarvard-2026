@@ -1,5 +1,7 @@
 # Need-to-Know
 
+[![CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml/badge.svg)](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) Every push and PR runs unit tests, builds both apps and runs the end-to-end smoke test (plus the collusion test once it exists). Don't merge a red PR.
+
 **Prove one fact about yourself (income ≥ 3× rent, age ≥ 18) without handing over a single document.**
 HackHarvard 2026 · Digital Trust track · Capital One Nessie + Photon challenges.
 
@@ -19,7 +21,10 @@ A landlord asks one question. The tenant's own computer pulls their bank deposit
 - ✅ Landlord portal verifies the signature and shows ✓ / ✗
 - ✅ Answering the same request twice is rejected (replay)
 - ✅ Leo's one-time $6,000 transfer doesn't fool the income check
-- ⏳ Real Nessie data (Angelo) · ⏳ real tamper check (Sam) · ⏳ Photon texts + design (Boris)
+- ✅ Tamper check: editing the tenant app's code makes it refuse to sign (Sam)
+- ✅ Requests and used one-time codes survive a portal restart (Sam)
+- ✅ Photon texts, console fallback, and both screens (Boris)
+- ⏳ Real Nessie data (Angelo)
 
 Every placeholder in the code is marked `TODO(Angelo)`, `TODO(Sam)` or `TODO(Boris)`. Search for your name.
 
@@ -42,7 +47,17 @@ Then, in a second terminal: `npm run smoke` (should print 6 PASS lines). Or by h
 2. Open the **Tenant link** it shows, pick a demo bank account, click **Approve**.
 3. Back on :3000 the request flips to ✓ or ✗ within 2 seconds.
 
-`npm test` runs the unit tests (signing + income logic).
+`npm test` runs the unit tests (signing, income logic, tamper check, portal storage, and the Photon client).
+
+## Where Photon is used
+
+Judges check that the project is built on Photon 2.0 and lives on a Photon channel. The text to the tenant is that channel.
+
+- **Client:** `messaging/` (`@ntk/messaging`) uses the Photon 2.0 TypeScript SDK (`@photon-ai/api`) against `https://api.photon.codes/v1`. `sendText` creates or reuses the tenant user, opens a space with the agent, and sends one plain-text message.
+- **Call site:** `notifyTenant()` in `landlord-portal/lib/notify.ts`, called from `POST /api/requests` when the landlord enters a phone number. The text is the question summary plus the tenant link.
+- **Channel:** `PHOTON_PLATFORM` in `landlord-portal/.env.local` (default `sms`). Also set `PHOTON_API_KEY`, `PHOTON_PROJECT_ID`, and `PHOTON_SENDER_ID` (the agent user id). Never commit that file.
+- **Fallback:** if those three keys are missing, or Photon returns an error, the portal logs the link and still shows it on screen. `delivery` in the create response is `"sent"` or `"logged"`.
+- **Reply YES:** `POST /api/photon/inbound` accepts a Photon `message.received` event. A plain-text `YES` from the phone on the latest request approves it through the tenant app (demo account `PHOTON_YES_TENANT`, default `maya`). The phone number is remembered only in memory for that reply. It is not stored on the request or inside the signed claim. Set `PHOTON_INBOUND_SECRET` and send it as `x-ntk-inbound-secret` before exposing the portal. The portal's reply drops the tenant-only income figure.
 
 ---
 
@@ -70,10 +85,18 @@ Starter prompt for Codex:
 
 Branch: `sam/tamper-check`
 
-1. Run it (above) and read `shared/src/claims.ts` and `shared/test/claims.test.ts` (signing already works; review it).
-2. Build the real tamper check (`tenant-app/lib/integrity.ts` has the plan): a `scripts/sign-manifest.ts` that hashes the tenant-app source and signs it with a separate release key; `checkIntegrity()` recomputes the hash and verifies the manifest. Put the approved hash in `TRUSTED_BUILD_HASHES` in `landlord-portal/.env.local`.
-3. Demo test: edit one line in `tenant-app/lib/income.ts` → Approve must fail with "refusing to sign".
-4. Replace the in-memory store in `landlord-portal/lib/store.ts` with a JSON file or SQLite so requests survive a restart.
+Done: real tamper check, persistent portal store, `iat` rounded down to the UTC day for the collusion test.
+
+**Tamper check (turn it on for the demo):**
+
+1. `npm run sign-manifest`. It hashes `tenant-app/app`, `tenant-app/lib` and `shared/src`, signs the hash with a separate release key (`.keys/`, git-ignored), writes `tenant-app/build-manifest.json`, and puts the approved hash in `TRUSTED_BUILD_HASHES` on the portal.
+2. Demo: edit one line in `tenant-app/lib/income.ts`, click Approve. It fails with "App code was modified (tenant-app/lib/income.ts); refusing to sign".
+3. If someone also disables the local check, the portal still rejects the claim as `untrusted_build`.
+4. Re-run `npm run sign-manifest` after every code change, or Approve keeps refusing. `npm run sign-manifest -- --reset` turns it back off.
+
+Without a manifest (everyone's default), the app runs as an unsigned dev build and the portal accepts it, so nobody's dev loop breaks.
+
+**Portal store:** requests and used one-time codes are saved to `landlord-portal/.data/store.json` (git-ignored), so a restart doesn't lose them or allow a replay.
 
 Starter prompt for Claude (Claude Code in the repo folder, or paste the files into claude.ai):
 > Read CLAUDE.md and AGENTS.md. Implement the tamper check described in tenant-app/lib/integrity.ts using only `jose` and node:crypto. Add scripts/sign-manifest.ts and tests. Don't change ClaimPayload in shared/src/types.ts without telling me.
@@ -99,7 +122,7 @@ Starter prompt for Cursor:
 The same tenant proves the income fact to two different landlords. The landlords pool everything they received and try to tell whether it was the same person, and fail.
 
 - Each landlord already gets a different pairwise ID (`sub`) for the same tenant.
-- Everything else in the claim must be the same for every tenant or too coarse to link: one shared app signing key (never per-tenant), timestamps rounded to the hour, no IP/device data stored by the portal.
+- Everything else in the claim must be the same for every tenant or too coarse to link: one shared app signing key (never per-tenant), timestamps rounded down to the UTC day, no IP/device data stored by the portal.
 - Build `scripts/collusion-test.ts`: two portal audiences, two tenants, each answers both; pool the 4 claims and show matching them back to tenants is no better than a coin flip. Boris builds a side-by-side demo screen; Angelo makes the slide.
 
 ---
@@ -124,7 +147,7 @@ landlord-portal (:3000)                tenant app (:3001, the tenant's own machi
 | `tenant-app/` | Consent screen, Nessie fetch, income math, tamper check, signing | Angelo (data/math), Sam (integrity), Boris (UI) |
 | `landlord-portal/` | Create requests, verify claims, show result | Boris (UI), Sam (storage) |
 | `messaging/` | Photon 2.0 client | Boris |
-| `scripts/` | `gen-keys`, `smoke-test`, `seed-nessie`, (soon) `sign-manifest` | All |
+| `scripts/` | `gen-keys`, `smoke-test`, `seed-nessie`, `sign-manifest` | All |
 | `docs/` | Threat model, pitch notes | Angelo |
 
 ## Rules

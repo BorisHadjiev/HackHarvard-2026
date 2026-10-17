@@ -1,0 +1,24 @@
+# Render Blueprint: landlord portal only. The tenant app stays on the demo laptop.
+services:
+  - type: web
+    name: need-to-know
+    runtime: node
+    plan: free # free plan sleeps after ~15 min idle; switch to "starter" (paid) for judging if needed
+    buildCommand: npm ci && npm run build -w landlord-portal
+    startCommand: npm run start -w landlord-portal
+    healthCheckPath: /api/requests
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: TENANT_APP_PUBLIC_JWK
+        sync: false
+      - key: PORTAL_AUDIENCE
+        sync: false
+      - key: PORTAL_REQUESTER_NAME
+        sync: false
+      - key: TENANT_APP_URL
+        sync: false
+      - key: PUBLIC_PORTAL_URL
+        sync: false
+      - key: TRUSTED_BUILD_HASHES
+        sync: false
