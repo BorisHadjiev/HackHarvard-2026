@@ -57,7 +57,7 @@ export default async function RequestPage({
     <main className="tenant-page">
       <p className="kicker">{request.requesterName}</p>
       <h1>A little certainty.<br />Your privacy, intact.</h1>
-      <p className="sub">Review the request below. You decide whether to share an eligibility answer. Your bank data stays on this device.</p>
+      <p className="sub">Review the request below. Upload a document on this device, or use bank data. Only a yes or no can be shared.</p>
       <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} plaidConfigured={plaidConfig().configured} />
     </main>
   );

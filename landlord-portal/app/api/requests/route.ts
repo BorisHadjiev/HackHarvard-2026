@@ -5,6 +5,7 @@ import { store } from "@/lib/store";
 import { portalConfig } from "@/lib/config";
 import { notifyTenant } from "@/lib/notify";
 import { portalPublicOrigin } from "@/lib/public-url";
+import { tenantVerificationLink } from "@/lib/tenant-link";
 import { rememberTenantPhone } from "@ntk/messaging";
 
 const REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
   store.requests.set(request.id, request);
 
   const portalUrl = portalPublicOrigin(req);
-  const link = `${cfg.tenantAppUrl}/request/${request.id}?portal=${encodeURIComponent(portalUrl)}`;
+  const link = tenantVerificationLink(cfg.tenantAppUrl, request.id, portalUrl);
   const summary = `${request.requesterName} asks: is your income at least ${multiple}x $${request.question.rent.toLocaleString("en-US")} rent?`;
   if (typeof body.tenantPhone === "string" && body.tenantPhone.trim()) {
     try {
