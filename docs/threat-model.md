@@ -9,7 +9,8 @@ The requester learns one signed yes/no for one question, tied to one request, pl
 | Claim sent to a different landlord | `aud` must match the portal | Same |
 | Tenant fakes bank data | Data comes from the bank API, not an upload | Bank-signed data (open banking) or zkTLS |
 | Tenant inflates income with a one-time transfer | Only recurring payers count; median month | Richer payer classification |
-| Tenant patches the app to always say yes | Tamper check refuses to run/sign (software) | Hardware attestation (App Attest / Play Integrity) |
+| Tenant patches the app to always say yes | Tamper check refuses to sign; the landlord also requires a zero-knowledge proof over bank-signed deposits, which a patched app can't produce | Hardware attestation (App Attest / Play Integrity) plus the same proof |
+| Tenant flips the yes/no or invents deposits | The proof's public answer must match the claim; the deposits must hash to what the bank signed | Same, with the real bank signing |
 | Landlords track a tenant across applications | Pairwise subject: different ID per landlord | Same |
 
 The local signing key and software integrity check are demo trust assumptions. A user who controls

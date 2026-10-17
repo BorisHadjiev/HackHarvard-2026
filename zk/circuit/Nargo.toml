@@ -1,0 +1,6 @@
+[package]
+name = "income_to_rent"
+type = "bin"
+authors = ["Need-to-Know"]
+
+[dependencies]

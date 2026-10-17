@@ -36,8 +36,14 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   unreadable, expired or failed ID posts a decline instead. `POST /api/documents` with `mode=age` previews the checks.
 - Banks (`tenant-app/lib/bank.ts`): a demo account (`fetchDeposits`: Nessie or fixtures) or Plaid (`lib/plaid.ts`,
   sandbox by default, `PLAID_CLIENT_ID` / `PLAID_SECRET`). Plaid access tokens stay in process memory only.
-- Keys: `npm run keys` writes `TENANT_APP_PRIVATE_JWK` (tenant-app/.env.local) and
-  `TENANT_APP_PUBLIC_JWK` (landlord-portal/.env.local).
+- Zero-knowledge proof (`zk/`, `bank-signer/`): for demo bank accounts the tenant app asks the stand-in bank
+  (`bank-signer/`, :3002) to sign a salted Pedersen commitment to the deposits, then proves in Noir/Barretenberg
+  (`zk/circuit/src/main.nr`) that "median recurring month >= multiple x rent" holds for exactly that list, bound to
+  the request's one-time code. The portal (`landlord-portal/lib/proof.ts`) verifies the bank signature
+  (`TRUSTED_BANK_KEYS`) and the proof, and requires both for bank-strength claims when a bank key is set.
+  Circuit changes: edit main.nr, run `npm run compile:zk` (writes `zk/artifacts/income_to_rent.ts`), commit it.
+- Keys: `npm run keys` writes `TENANT_APP_PRIVATE_JWK` (tenant-app/.env.local), the bank signer key, and
+  `TENANT_APP_PUBLIC_JWK` + `TRUSTED_BANK_KEYS` (landlord-portal/.env.local). Existing keys are kept; `--rotate` replaces them.
 
 ## Signed claim (ClaimPayload in shared/src/types.ts)
 `{ aud, nonce, sub (pairwise), claim: ClaimBody, evidence: { source, strength, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
@@ -61,6 +67,7 @@ judge the answer. Don't add finer detail (document types, bank names, employer) 
 ## Hard rules
 1. The signed claim and anything sent to the portal must NEVER contain dollar amounts, balances, deposits or documents.
 2. Never implement cryptography by hand. Use `jose` (and node:crypto / WebCrypto for hashing/HMAC only).
+   Zero-knowledge proofs use Noir + Barretenberg (`@noir-lang/noir_js`, `@aztec/bb.js`), never hand-rolled.
    Exception: verifying signatures inside PDFs needs CMS/PKCS#7, which `jose` doesn't do, so
    `tenant-app/lib/documents/pdf-signature.ts` uses PKI.js on top of WebCrypto. Test fixtures may use node-forge.
 3. Never commit secrets. Secrets live in `*/.env.local` (git-ignored).
@@ -71,8 +78,8 @@ judge the answer. Don't add finer detail (document types, bank names, employer) 
 
 ## Owners (look for TODO(Name) in the code)
 - Angelo: `tenant-app/lib/nessie.ts`, `tenant-app/lib/income.ts`, `scripts/seed-nessie.ts`, `docs/`
-- Sam: `shared/`, `tenant-app/lib/integrity.ts`, `tenant-app/lib/documents/`, `tenant-app/lib/plaid.ts`,
-  `landlord-portal/lib/store.ts`, signing/verification
+- Sam: `shared/`, `zk/`, `bank-signer/`, `tenant-app/lib/integrity.ts`, `tenant-app/lib/documents/`, `tenant-app/lib/plaid.ts`,
+  `tenant-app/lib/zk-prove.ts`, `landlord-portal/lib/store.ts`, `landlord-portal/lib/proof.ts`, signing/verification
 - Boris: all UI (`app/page.tsx`, `consent.tsx`, `globals.css`), `messaging/`, `landlord-portal/lib/notify.ts`
 
 ## Commands

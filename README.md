@@ -27,7 +27,7 @@ npm run setup
 npm run dev
 ```
 
-Open the portal at http://localhost:3000. Create an income or Age 18+ request, open its tenant link (tenant app at http://localhost:3001), review the disclosure and approve. Default demo tenants are Maya (income yes at $2,400 rent / 3×) and Leo (no). Without messaging credentials, the portal displays and logs the link.
+Open the portal at http://localhost:3000. Create an income or Age 18+ request, open its tenant link (tenant app at http://localhost:3001; stand-in bank signer at http://localhost:3002), review the disclosure and approve. Default demo tenants are Maya (income yes at $2,400 rent / 3×) and Leo (no). Without messaging credentials, the portal displays and logs the link.
 
 For age and income document examples:
 
@@ -45,7 +45,13 @@ Income evidence is labeled bank, signed documents, documents confirmed by bank, 
 
 Claims bind the answer to a question, audience and nonce. They use a pairwise subject and day-rounded issuance time to reduce correlation. The collusion simulation measures the fields it models; it does not establish protection from network, account or device tracking. Software build checks also do not provide hardware attestation or make a locally held signing key inaccessible to its owner.
 
-**Zero-knowledge status:** the merged age flow uses signed claims, not ZK. The bank-backed Noir/Barretenberg income proof and its enforcement tests are tracked in [Sam's implementation PR #15](https://github.com/BorisHadjiev/HackHarvard-2026/pull/15) and [integration PR #22](https://github.com/BorisHadjiev/HackHarvard-2026/pull/22). Check their merge status before claiming a checkout or deployment supports ZK. A proof of a predicate still needs trustworthy input provenance; the demo bank signer is a stand-in for a bank-controlled issuer.
+## Zero-knowledge income proofs
+
+Demo bank income answers include a real Noir/Barretenberg proof. The separate bank signer signs a salted Pedersen commitment to the deposit list; the tenant proves the recurring-income predicate over that private list, bound to the rent, multiple and one-time request code. The portal verifies both the bank attestation and the proof and checks that the answer matches. Deposit amounts and payer details stay private. `npm run dev` starts the signer on port 3002; `npm run keys` configures its key and the portal's `TRUSTED_BANK_KEYS`.
+
+When trusted bank keys are configured, bank-strength claims require the proof. This protects against changing the answer or substituting deposits without a matching bank attestation. It relies on the bank signing accurate data. The demo signer is an unauthenticated stand-in; a production issuer must control the signing key and authenticate data access. Documents, age and the current Plaid path do not use this proof.
+
+Change the circuit in `zk/circuit/src/main.nr`, then run `npm run compile:zk` and commit the generated artifact. Additional adversarial end-to-end enforcement tests are in [integration PR #22](https://github.com/BorisHadjiev/HackHarvard-2026/pull/22).
 
 ## Configuration
 
@@ -73,6 +79,7 @@ Document accuracy generates a labeled synthetic income corpus and reports age ou
 ## Repository
 
 - `shared/`: question/claim types, Ed25519 signing and verification, pairwise subjects.
+- `zk/` and `bank-signer/`: income circuit, proof generation/verification and stand-in bank attestation.
 - `tenant-app/`: consent, bank integrations, income evaluation, document/ID reading and local integrity checks.
 - `landlord-portal/`: request creation, claim validation, durable request state and results.
 - `messaging/`: Photon client and reply handling.

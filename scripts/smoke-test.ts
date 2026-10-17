@@ -22,6 +22,7 @@ check("Maya approves and the portal verifies YES", a1.status === 200 && a1.json.
 
 const status = await (await fetch(`${PORTAL}/api/requests/${id}`)).json();
 check("portal stores the result without dollar amounts", status.result?.answer === true && !JSON.stringify(status).includes("8200"), status);
+check("the answer was proven in zero knowledge (bank-signed deposits)", status.result?.proof === "zk", status.result);
 
 const a2 = await post(`${TENANT}/api/approve`, { requestId: id, portal: PORTAL, tenant: "maya" });
 check("a second answer to the same request is rejected (replay)", a2.status === 409 && a2.json.code === "replayed", a2);

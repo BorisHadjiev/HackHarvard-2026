@@ -22,6 +22,9 @@ services:
         sync: false
       - key: TRUSTED_BUILD_HASHES
         sync: false
+      # Public key(s) of the bank signer. When set, bank-backed answers must carry a zero-knowledge proof.
+      - key: TRUSTED_BANK_KEYS
+        sync: false
       # Texting (optional). Without PHOTON_* the portal logs the tenant link instead of texting it.
       - key: PHOTON_API_KEY
         sync: false
