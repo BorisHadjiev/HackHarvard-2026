@@ -18,6 +18,8 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
   const [reply, setReply] = useState<Reply | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const q = request.question;
+  // Type-narrowing only (Sam, age-claim contract). Boris owns the age consent screen itself.
+  const income = q.type === "income_to_rent" ? q : null;
   const declinedOnRecord = request.status === "rejected";
   const expired = recordedAnswer == null && !declinedOnRecord && request.status !== "verified" && Date.parse(request.expiresAt) < Date.now();
   const alreadyAnswered = recordedAnswer == null && request.status === "verified";
@@ -86,8 +88,12 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
     <>
       <section className="card">
         <p className="kicker">The question · {request.requesterName}</p>
-        <h2 className="question-line">Is your income at least {q.multiple}× the ${q.rent.toLocaleString("en-US")} monthly rent?</h2>
-        <div className="threshold"><span>Monthly rent · set by landlord</span><strong>${q.rent.toLocaleString("en-US")} <small>× {q.multiple}</small></strong><p>Income requirement: ${(q.rent * q.multiple).toLocaleString("en-US")} / month. Your actual income is never shared.</p></div>
+        {income ? (<>
+        <h2 className="question-line">Is your income at least {income.multiple}× the ${income.rent.toLocaleString("en-US")} monthly rent?</h2>
+        <div className="threshold"><span>Monthly rent · set by landlord</span><strong>${income.rent.toLocaleString("en-US")} <small>× {income.multiple}</small></strong><p>Income requirement: ${(income.rent * income.multiple).toLocaleString("en-US")} / month. Your actual income is never shared.</p></div>
+        </>) : (
+        <h2 className="question-line">Are you at least 18?</h2>
+        )}
       </section>
 
       <section className="card privacy-panel">
@@ -124,7 +130,7 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
             plaidConfigured={plaidConfigured} plaidLinkId={plaidLinkId} setPlaidLinkId={setPlaidLinkId}
             files={files} setFiles={setFiles}
             confirmWithBank={confirmWithBank} setConfirmWithBank={setConfirmWithBank}
-            rent={q.rent} multiple={q.multiple} disabled={busy}
+            rent={income?.rent ?? 0} multiple={income?.multiple ?? 0} disabled={busy}
           />
           {sendError && <p className="banner bad" role="alert">{sendError}</p>}
           <label className="consent-check"><input type="checkbox" checked={consent} disabled={busy} onChange={(e) => setConsent(e.target.checked)} /><span>I agree to share only my eligibility result and verification metadata for this request.</span></label>

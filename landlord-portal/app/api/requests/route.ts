@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID, randomBytes } from "node:crypto";
-import type { VerificationRequest } from "@ntk/shared";
+import { MIN_AGE, type Question, type VerificationRequest } from "@ntk/shared";
 import { store } from "@/lib/store";
 import { portalConfig } from "@/lib/config";
 import { notifyTenant } from "@/lib/notify";
@@ -10,23 +10,35 @@ import { rememberTenantPhone } from "@ntk/messaging";
 
 const REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Create a verification request: { rent, multiple, tenantPhone? }
-export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
+/** The question and the one-line text summary for it. Income stays the default. */
+function questionFrom(body: Record<string, unknown>, requesterName: string): { question: Question; summary: string } | { error: string } {
+  if (body.type === "age_over") {
+    return { question: { type: "age_over", min_age: MIN_AGE }, summary: `${requesterName} asks: are you at least ${MIN_AGE}?` };
+  }
+  if (body.type !== undefined && body.type !== "income_to_rent") return { error: `unknown question type: ${String(body.type)}` };
   const rent = Number(body.rent);
   const multiple = Number(body.multiple ?? 3);
   if (!Number.isFinite(rent) || rent <= 0 || !Number.isFinite(multiple) || multiple <= 0) {
-    return NextResponse.json({ error: "rent and multiple must be positive numbers" }, { status: 400 });
+    return { error: "rent and multiple must be positive numbers" };
   }
+  const question: Question = { type: "income_to_rent", rent: Math.round(rent), multiple };
+  return { question, summary: `${requesterName} asks: is your income at least ${multiple}x $${question.rent.toLocaleString("en-US")} rent?` };
+}
 
+// Create a verification request: { rent, multiple, tenantPhone? } or { type: "age_over", tenantPhone? }
+export async function POST(req: Request) {
+  const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const cfg = portalConfig();
+  const q = questionFrom(body, cfg.requesterName);
+  if ("error" in q) return NextResponse.json({ error: q.error }, { status: 400 });
+
   const now = new Date();
   const request: VerificationRequest = {
     id: randomUUID(),
     nonce: randomBytes(16).toString("base64url"),
     requesterName: cfg.requesterName,
     audience: cfg.audience,
-    question: { type: "income_to_rent", rent: Math.round(rent), multiple },
+    question: q.question,
     createdAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + REQUEST_TTL_MS).toISOString(),
     status: "pending",
@@ -35,7 +47,7 @@ export async function POST(req: Request) {
 
   const portalUrl = portalPublicOrigin(req);
   const link = tenantVerificationLink(cfg.tenantAppUrl, request.id, portalUrl);
-  const summary = `${request.requesterName} asks: is your income at least ${multiple}x $${request.question.rent.toLocaleString("en-US")} rent?`;
+  const summary = q.summary;
   if (typeof body.tenantPhone === "string" && body.tenantPhone.trim()) {
     try {
       rememberTenantPhone(body.tenantPhone, request.id);
@@ -43,7 +55,7 @@ export async function POST(req: Request) {
       // An unusable phone still leaves the link on screen.
     }
   }
-  const delivery = await notifyTenant(body.tenantPhone, link, summary);
+  const delivery = await notifyTenant(typeof body.tenantPhone === "string" ? body.tenantPhone : undefined, link, summary);
 
   return NextResponse.json({ request, link, delivery }, { status: 201 });
 }

@@ -28,6 +28,12 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   pdf-signature.ts), and a cross-check against the bank's deposits (crosscheck.ts). analyze.ts decides which
   documents count and the evidence strength. `POST /api/documents` previews; `POST /api/approve` accepts the same
   multipart form with `mode=documents`. Files are processed in memory and never written or sent.
+- Age check (`tenant-app/lib/documents/id-card.ts`): reads a government ID on the device: PDF417/AAMVA barcode
+  (`zxing-wasm`, wasm loaded from node_modules), passport/ID-card MRZ via a second OCR pass with ICAO 9303 check
+  digits, or front-of-card "DOB" text. `decideAge()` in analyze.ts turns it into yes/no. The date of birth lives in
+  `IdReadResult.private` and must never reach a report, a response, a log line or the browser; the browser gets check
+  labels and pass/fail only. `POST /api/approve` with `mode=age` on an `age_over` request signs the age claim; an
+  unreadable, expired or failed ID posts a decline instead. `POST /api/documents` with `mode=age` previews the checks.
 - Banks (`tenant-app/lib/bank.ts`): a demo account (`fetchDeposits`: Nessie or fixtures) or Plaid (`lib/plaid.ts`,
   sandbox by default, `PLAID_CLIENT_ID` / `PLAID_SECRET`). Plaid access tokens stay in process memory only.
 - Zero-knowledge proof (`zk/`, `bank-signer/`): for demo bank accounts the tenant app asks the stand-in bank
@@ -40,7 +46,11 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   `TENANT_APP_PUBLIC_JWK` + `TRUSTED_BANK_KEYS` (landlord-portal/.env.local). Existing keys are kept; `--rotate` replaces them.
 
 ## Signed claim (ClaimPayload in shared/src/types.ts)
-`{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, strength, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
+`{ aud, nonce, sub (pairwise), claim: ClaimBody, evidence: { source, strength, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
+`ClaimBody` is `{ type: "income_to_rent", multiple, rent, result }` or `{ type: "age_over", min_age: 18, result }`, with no
+other fields (the portal rejects extras as malformed). Age claims always carry `AGE_EVIDENCE` from `shared/src/age.ts`
+(`document` / `document_unverified` / 0 days / "government ID, date of birth"); anything else is malformed.
+The portal checks the answer against the question with `claimAnswersQuestion` (type, then rent+multiple or min_age).
 `evidence.source` is `"bank"` or `"document"`; `evidence.strength` is one of `bank`, `document_signed`,
 `document_bank_matched`, `document_unverified` (claims from older builds without it count as `bank`).
 `method` and `window_days` are fixed per source, never per tenant.

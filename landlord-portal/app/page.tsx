@@ -2,7 +2,7 @@
 // Landlord portal home. Owner: Boris (UI).
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { EVIDENCE_LABELS, type VerificationRequest } from "@ntk/shared";
+import { EVIDENCE_LABELS, type Question, type VerificationRequest } from "@ntk/shared";
 import { landlordVerdict } from "@/lib/verdict";
 
 type Share = { id: string; link: string };
@@ -116,7 +116,7 @@ export default function Home() {
   const verified = requests.filter((r) => r.status === "verified").length;
   const visible = requests.filter((r) => {
     const status = r.status === "pending" && Date.parse(r.expiresAt) <= Date.now() ? "expired" : r.status;
-    return (filter === "all" || status === filter) && (r.id + " " + r.requesterName + " " + r.question.rent).toLowerCase().includes(search.toLowerCase());
+    return (filter === "all" || status === filter) && (r.id + " " + r.requesterName + " " + questionSummary(r.question).meta).toLowerCase().includes(search.toLowerCase());
   });
 
   return (
@@ -140,7 +140,7 @@ export default function Home() {
             {!loaded && <p className="empty">Loading requests…</p>}
             {loadError && <p className="banner bad" role="alert">{loadError}</p>}
             {loaded && !loadError && visible.length === 0 && <div className="empty-state"><span className="seal small" aria-hidden="true">✓</span><h3>{requests.length ? "No matching requests" : "Your first answer starts here"}</h3><p>{requests.length ? "Try another filter or search." : "Create a request. The tenant chooses what to share."}</p></div>}
-            <div aria-live="polite">{visible.map((r) => <article className="request-row" key={r.id}><div className="request-mark" aria-hidden="true">↗</div><div className="request-info"><h3>Income eligibility check</h3><p className="meta">Rent ${r.question.rent.toLocaleString("en-US")} / month · {r.question.multiple}× requirement</p><p className="mono">{r.id}</p><details><summary>Request details</summary><p className="meta">{questionLine(r.question.multiple, r.question.rent)}</p><p className="meta">Sent {formatWhen(r.createdAt)} · Expires {formatWhen(r.expiresAt)}</p>{r.result && <p className="meta">Verified {formatWhen(r.result.verifiedAt)}. No private financial evidence received.</p>}{links[r.id] && r.status === "pending" && <a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant consent ↗</a>}</details></div><Status r={r} /></article>)}</div>
+            <div aria-live="polite">{visible.map((r) => <article className="request-row" key={r.id}><div className="request-mark" aria-hidden="true">↗</div><div className="request-info"><h3>{questionSummary(r.question).title}</h3><p className="meta">{questionSummary(r.question).meta}</p><p className="mono">{r.id}</p><details><summary>Request details</summary><p className="meta">{questionSummary(r.question).line}</p><p className="meta">Sent {formatWhen(r.createdAt)} · Expires {formatWhen(r.expiresAt)}</p>{r.result && <p className="meta">Verified {formatWhen(r.result.verifiedAt)}. No private financial evidence received.</p>}{links[r.id] && r.status === "pending" && <a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant consent ↗</a>}</details></div><Status r={r} /></article>)}</div>
             <p className="list-foot">Your rent requirement is public. The tenant’s financial evidence stays private.</p>
           </section>
           <div>
@@ -160,6 +160,12 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+// Type-narrowing only (Sam, age-claim contract). Boris owns how an age request is presented.
+function questionSummary(q: Question): { title: string; meta: string; line: string } {
+  if (q.type === "age_over") return { title: "Age check", meta: `At least ${q.min_age} years old`, line: `Is the tenant at least ${q.min_age}?` };
+  return { title: "Income eligibility check", meta: `Rent $${q.rent.toLocaleString("en-US")} / month · ${q.multiple}× requirement`, line: questionLine(q.multiple, q.rent) };
 }
 
 function questionLine(multiple: number, rent: number) {

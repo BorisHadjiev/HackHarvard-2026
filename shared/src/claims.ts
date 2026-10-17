@@ -1,7 +1,8 @@
 // Signing and verifying claims. Owner: Sam.
 // Rule: never hand-roll crypto. Everything goes through `jose`.
 import { SignJWT, jwtVerify, importJWK, generateKeyPair, exportJWK, type JWK } from "jose";
-import type { ClaimPayload, EvidenceStrength, VerifiedClaim } from "./types";
+import type { ClaimBody, ClaimPayload, EvidenceStrength, Question, VerifiedClaim } from "./types";
+import { AGE_EVIDENCE, MIN_AGE } from "./age";
 
 export const CLAIM_ALG = "EdDSA"; // Ed25519 keys
 export const CLAIM_ISSUER = "need-to-know-tenant-app";
@@ -106,20 +107,49 @@ export async function verifyClaim(token: string, publicJwk: JWK, opts: VerifyOpt
   return claim;
 }
 
+const sameKeys = (o: Record<string, unknown>, keys: string[]) => Object.keys(o).sort().join(",") === [...keys].sort().join(",");
+
+/** The claim body, if it is exactly one of the allowed shapes (no extra fields: nothing per-tenant can ride along). */
+function claimBodyOf(c: unknown): ClaimBody | null {
+  if (!c || typeof c !== "object") return null;
+  const o = c as Record<string, unknown>;
+  if (typeof o.result !== "boolean") return null;
+  if (o.type === "income_to_rent" && sameKeys(o, ["type", "rent", "multiple", "result"]) && typeof o.rent === "number" && typeof o.multiple === "number") {
+    return o as unknown as ClaimBody;
+  }
+  if (o.type === "age_over" && sameKeys(o, ["type", "min_age", "result"]) && o.min_age === MIN_AGE) {
+    return o as unknown as ClaimBody;
+  }
+  return null;
+}
+
 /** A correctly signed token can still be the wrong shape (e.g. signed by an old build). Check before use. */
 function hasClaimShape(p: Record<string, unknown>): boolean {
-  const c = p.claim as Record<string, unknown> | undefined;
+  const c = claimBodyOf(p.claim);
   const b = p.build as Record<string, unknown> | undefined;
   const e = p.evidence as Record<string, unknown> | undefined;
-  return (
-    !!e && (e.source === "bank" || e.source === "document") &&
+  if (!c || !e || !b) return false;
+  const evidenceOk =
+    (e.source === "bank" || e.source === "document") &&
     (e.strength === undefined ? e.source === "bank" : EVIDENCE_STRENGTHS.includes(e.strength as EvidenceStrength)) &&
-    (e.source === "bank") === (e.strength === undefined || e.strength === "bank") &&
-    typeof p.nonce === "string" &&
-    typeof p.sub === "string" &&
-    !!c && c.type === "income_to_rent" && typeof c.rent === "number" && typeof c.multiple === "number" && typeof c.result === "boolean" &&
-    !!b && typeof b.hash === "string" && b.integrity === "passed"
+    (e.source === "bank") === (e.strength === undefined || e.strength === "bank");
+  // Age answers carry one fixed evidence block, so no document type, issuer or age can leak through it.
+  const ageEvidenceOk = c.type !== "age_over" || (
+    sameKeys(e, ["source", "strength", "window_days", "method"]) &&
+    e.source === AGE_EVIDENCE.source && e.strength === AGE_EVIDENCE.strength &&
+    e.window_days === AGE_EVIDENCE.window_days && e.method === AGE_EVIDENCE.method
   );
+  return evidenceOk && ageEvidenceOk && typeof p.nonce === "string" && typeof p.sub === "string" && typeof b.hash === "string" && b.integrity === "passed";
+}
+
+/** Does this signed answer answer exactly the question the landlord asked? */
+export function claimAnswersQuestion(claim: ClaimBody, question: Question): boolean {
+  if (claim.type !== question.type) return false;
+  if (claim.type === "income_to_rent" && question.type === "income_to_rent") {
+    return claim.rent === question.rent && claim.multiple === question.multiple;
+  }
+  if (claim.type === "age_over" && question.type === "age_over") return claim.min_age === question.min_age;
+  return false;
 }
 
 /**
