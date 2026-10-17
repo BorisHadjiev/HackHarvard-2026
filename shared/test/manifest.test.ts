@@ -21,7 +21,7 @@ test("a signed claim can't be passed off as a manifest, even with the same key",
     {
       aud: "a", nonce: "n", sub: "s",
       claim: { type: "income_to_rent", multiple: 3, rent: 1, result: true },
-      evidence: { source: "bank", window_days: 90, method: "m" },
+      evidence: { source: "bank", strength: "bank", window_days: 90, method: "m" },
       build: { hash: "h", integrity: "passed" },
     },
     privateJwk,

@@ -19,7 +19,9 @@
     "test": "npm test -w shared && npm test -w tenant-app && npm test -w landlord-portal && npm test -w messaging",
     "build": "npm run build -w landlord-portal && npm run build -w tenant-app",
     "smoke": "tsx scripts/smoke-test.ts",
-    "collusion": "tsx scripts/collusion-test.ts"
+    "collusion": "tsx scripts/collusion-test.ts",
+    "sample-docs": "tsx scripts/sample-documents.ts",
+    "doc-accuracy": "tsx scripts/document-accuracy.ts"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

@@ -14,6 +14,17 @@ export interface IncomeToRentQuestion {
 
 export type Question = IncomeToRentQuestion;
 
+/**
+ * How the tenant's app established the answer, strongest first. Deliberately coarse: every extra
+ * value splits tenants into smaller groups that pooled landlords could tell apart (collusion test).
+ * - bank: computed from deposits pulled straight from the tenant's bank (Nessie, Plaid)
+ * - document_signed: computed from documents carrying a valid digital signature from a trusted issuer
+ * - document_bank_matched: computed from documents whose numbers matched the bank's own records
+ * - document_unverified: computed from documents that passed the on-device tamper checks, but nothing
+ *   independent confirmed them. A scan or photo alone can be edited, so this is the weakest level.
+ */
+export type EvidenceStrength = "bank" | "document_signed" | "document_bank_matched" | "document_unverified";
+
 /** A verification request created on the landlord portal. */
 export interface VerificationRequest {
   id: string;
@@ -28,7 +39,7 @@ export interface VerificationRequest {
   expiresAt: string; // ISO date; the request itself expires
   status: "pending" | "verified" | "rejected";
   /** Filled in once a claim is accepted. Never contains dollar amounts. */
-  result?: { answer: boolean; verifiedAt: string };
+  result?: { answer: boolean; verifiedAt: string; evidence?: EvidenceStrength };
 }
 
 /** The body of the signed claim. Contains no dollar amounts or documents. */
@@ -44,8 +55,12 @@ export interface ClaimPayload {
     result: boolean;
   };
   evidence: {
-    source: "bank";
+    /** Where the numbers came from. Never the documents or deposits themselves. */
+    source: "bank" | "document";
+    /** How strongly the answer is backed. Claims from builds before this field count as "bank". */
+    strength: EvidenceStrength;
     window_days: number;
+    /** One fixed description per source (never per tenant), e.g. "recurring deposits, median month". */
     method: string;
   };
   build: {

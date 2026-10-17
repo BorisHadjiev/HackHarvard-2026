@@ -2,6 +2,7 @@
 import type { VerificationRequest } from "@ntk/shared";
 import { tenantConfig } from "@/lib/config";
 import { DEMO_TENANTS } from "@/lib/nessie";
+import { plaidConfig } from "@/lib/plaid";
 import Consent from "./consent";
 
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export default async function RequestPage({
       <p className="kicker">{request.requesterName}</p>
       <h1>A little certainty.<br />Your privacy, intact.</h1>
       <p className="sub">Review the request below. You decide whether to share an eligibility answer. Your bank data stays on this device.</p>
-      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} />
+      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} plaidConfigured={plaidConfig().configured} />
     </main>
   );
 }

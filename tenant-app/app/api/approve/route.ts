@@ -1,32 +1,56 @@
 import { NextResponse } from "next/server";
-import { signClaim, type VerificationRequest } from "@ntk/shared";
+import { signClaim, type ClaimPayload, type VerificationRequest } from "@ntk/shared";
 import { tenantConfig } from "@/lib/config";
 import { checkIntegrity } from "@/lib/integrity";
-import { fetchDeposits, DEMO_TENANTS, type DemoTenant } from "@/lib/nessie";
 import { evaluateIncome } from "@/lib/income";
 import { buildClaimPayload } from "@/lib/claim";
+import { getBankDeposits, parseBankChoice } from "@/lib/bank";
+import { analyzeDocuments, DOCUMENT_METHOD, DOCUMENT_WINDOW_DAYS } from "@/lib/documents/analyze";
+import { summarizeDecision } from "@/lib/documents/summary";
+import { readEvidenceRequest } from "@/lib/request-body";
 
 // The tenant approved. Everything sensitive happens here, on the tenant's machine:
-// tamper check -> fetch deposits -> compute -> sign yes/no -> send only the signed answer.
+// tamper check -> bank data and/or documents -> compute -> sign yes/no -> send only the signed answer.
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => ({}));
+  const body = await readEvidenceRequest(req);
   const cfg = tenantConfig();
   const portal = String(body.portal || cfg.defaultPortalUrl);
-  const tenant = (body.tenant in DEMO_TENANTS ? body.tenant : "maya") as DemoTenant;
+  const choice = parseBankChoice(body.tenant, body.plaidLinkId);
 
   const integrity = await checkIntegrity();
   if (!integrity.passed) {
     return NextResponse.json({ ok: false, code: "tampered", message: integrity.reason ?? "App integrity check failed; refusing to sign" }, { status: 403 });
   }
 
-  const reqRes = await fetch(`${portal}/api/requests/${encodeURIComponent(String(body.requestId))}`, { cache: "no-store" });
+  const reqRes = await fetch(`${portal}/api/requests/${encodeURIComponent(body.requestId)}`, { cache: "no-store" });
   if (!reqRes.ok) return NextResponse.json({ ok: false, code: "unknown_request" }, { status: 404 });
   const { request } = (await reqRes.json()) as { request: VerificationRequest };
+  const { rent, multiple } = request.question;
 
-  const { deposits, source } = await fetchDeposits(tenant);
-  const income = evaluateIncome(deposits, request.question.rent, request.question.multiple);
+  let income;
+  let evidence: ClaimPayload["evidence"] | undefined;
+  let local: Record<string, unknown>;
+  try {
+    if (body.mode === "documents") {
+      if (!body.files.length) return NextResponse.json({ ok: false, code: "no_documents", message: "Add at least one document" }, { status: 400 });
+      const bank = body.confirmWithBank ? await getBankDeposits(choice).catch(() => undefined) : undefined;
+      const decision = await analyzeDocuments(body.files, { bank, rent, multiple });
+      local = { dataSource: "documents", medianMonthlyIncome: decision.monthlyIncome, evidence: decision.strength, documents: summarizeDecision(decision) };
+      if (!decision.strength) {
+        return NextResponse.json({ ok: false, code: "documents_unusable", message: decision.reason, local }, { status: 422 });
+      }
+      income = { meets: decision.meets, medianMonthlyIncome: decision.monthlyIncome, recurringPayers: [] };
+      evidence = { source: "document", strength: decision.strength, window_days: DOCUMENT_WINDOW_DAYS, method: DOCUMENT_METHOD };
+    } else {
+      const { deposits, source } = await getBankDeposits(choice);
+      income = evaluateIncome(deposits, rent, multiple);
+      local = { dataSource: source, medianMonthlyIncome: income.medianMonthlyIncome, evidence: "bank" };
+    }
+  } catch (err) {
+    return NextResponse.json({ ok: false, code: "bank_unavailable", message: (err as Error).message }, { status: 502 });
+  }
 
-  const payload = await buildClaimPayload(request, { id: tenant, secret: cfg.tenantSecret }, income, integrity);
+  const payload = await buildClaimPayload(request, { id: choice.tenant, secret: cfg.tenantSecret }, income, integrity, evidence);
   const token = await signClaim(payload, cfg.privateJwk);
 
   const verdict = await fetch(`${portal}/api/claims`, {
@@ -37,5 +61,5 @@ export async function POST(req: Request) {
   const portalReply = await verdict.json();
 
   // Shown on the tenant's own screen only (it never left this machine).
-  return NextResponse.json({ ...portalReply, local: { dataSource: source, medianMonthlyIncome: income.medianMonthlyIncome } }, { status: verdict.status });
+  return NextResponse.json({ ...portalReply, local }, { status: verdict.status });
 }

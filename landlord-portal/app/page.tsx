@@ -2,7 +2,7 @@
 // Landlord portal home. Owner: Boris (UI).
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import type { VerificationRequest } from "@ntk/shared";
+import { EVIDENCE_LABELS, type VerificationRequest } from "@ntk/shared";
 
 type Share = { id: string; link: string };
 
@@ -184,9 +184,15 @@ function Status({ r }: { r: VerificationRequest }) {
     );
   }
   if (r.status === "verified" && r.result) {
-    return r.result.answer
-      ? <p className="verdict ok" role="status">Yes — meets the requirement</p>
-      : <p className="verdict bad" role="status">No — does not meet the requirement</p>;
+    const evidence = r.result.evidence ?? "bank";
+    return (
+      <div role="status">
+        {r.result.answer
+          ? <p className="verdict ok">Yes — meets the requirement</p>
+          : <p className="verdict bad">No — does not meet the requirement</p>}
+        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}</p>
+      </div>
+    );
   }
   return <p className="verdict wait" role="status">Waiting for the tenant</p>;
 }

@@ -2,11 +2,16 @@
 // Consent screen (interactive part). Owner: Boris (UI).
 import { useState } from "react";
 import type { VerificationRequest } from "@ntk/shared";
+import EvidencePicker, { DocumentReport, STRENGTH_LABELS, type Decision, type Mode } from "./evidence";
 
-type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number } };
+type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number; evidence?: string | null; documents?: Decision } };
 
-export default function Consent({ request, portal, tenants, recordedAnswer = null }: { request: VerificationRequest; portal: string; tenants: Record<string, string>; recordedAnswer?: boolean | null }) {
+export default function Consent({ request, portal, tenants, recordedAnswer = null, plaidConfigured = false }: { request: VerificationRequest; portal: string; tenants: Record<string, string>; recordedAnswer?: boolean | null; plaidConfigured?: boolean }) {
   const [tenant, setTenant] = useState(Object.keys(tenants)[0] ?? "");
+  const [mode, setMode] = useState<Mode>("bank");
+  const [plaidLinkId, setPlaidLinkId] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [confirmWithBank, setConfirmWithBank] = useState(true);
   const [consent, setConsent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [declined, setDeclined] = useState(false);
@@ -46,11 +51,24 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
     setSendError(null);
     setReply(null);
     try {
-      const res = await fetch("/api/approve", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ requestId: request.id, portal, tenant }),
-      });
+      let res: Response;
+      if (mode === "documents") {
+        const form = new FormData();
+        form.set("requestId", request.id);
+        form.set("portal", portal);
+        form.set("tenant", tenant);
+        form.set("mode", "documents");
+        form.set("confirmWithBank", String(confirmWithBank));
+        if (plaidLinkId) form.set("plaidLinkId", plaidLinkId);
+        for (const f of files) form.append("documents", f);
+        res = await fetch("/api/approve", { method: "POST", body: form });
+      } else {
+        res = await fetch("/api/approve", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ requestId: request.id, portal, tenant, plaidLinkId: plaidLinkId ?? undefined }),
+        });
+      }
       const body = (await res.json().catch(() => null)) as Reply | null;
       if (!body || typeof body.ok !== "boolean") {
         setSendError("The app got an unreadable response. Check with the landlord before trying again.");
@@ -77,6 +95,7 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
         <ul className="plain">
           <li>One signed yes or no</li>
           <li>The question above, so the answer matches what they asked</li>
+          <li>How it was checked, for example &ldquo;bank-verified&rdquo; or &ldquo;documents confirmed by bank&rdquo;</li>
         </ul>
         <h2 className="private-heading">Stays on your device</h2>
         <ul className="plain">
@@ -84,7 +103,7 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
           <li>No balances or deposits</li>
           <li>No dollar amounts</li>
         </ul>
-        <p className="hint">Checked on this device: the last 90 days of recurring deposits. The landlord never sees that data.</p>
+        <p className="hint">Checked on this device: your recent bank deposits, or the income documents you choose. The landlord never sees that data.</p>
       </section>
 
       {expired && <p className="banner bad" role="status">This request expired. Ask {request.requesterName} for a new link. Nothing will be sent.</p>}
@@ -99,18 +118,19 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
 
       {!closed && (
         <section className="card">
-          <label htmlFor="demo-account">
-            Demo bank account
-            <select id="demo-account" value={tenant} onChange={(e) => setTenant(e.target.value)}>
-              {Object.entries(tenants).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
-            </select>
-            <span className="hint">Sample accounts for the demo. Maya meets a typical 3× rule. Leo does not.</span>
-          </label>
+          <EvidencePicker
+            mode={mode} setMode={setMode}
+            tenants={tenants} tenant={tenant} setTenant={setTenant}
+            plaidConfigured={plaidConfigured} plaidLinkId={plaidLinkId} setPlaidLinkId={setPlaidLinkId}
+            files={files} setFiles={setFiles}
+            confirmWithBank={confirmWithBank} setConfirmWithBank={setConfirmWithBank}
+            rent={q.rent} multiple={q.multiple} disabled={busy}
+          />
           {sendError && <p className="banner bad" role="alert">{sendError}</p>}
           <label className="consent-check"><input type="checkbox" checked={consent} disabled={busy} onChange={(e) => setConsent(e.target.checked)} /><span>I agree to share only my eligibility result and verification metadata for this request.</span></label>
           <div className="actions">
             <button type="button" className="secondary" onClick={decline} disabled={busy}>Decline</button>
-            <button type="button" onClick={approve} disabled={busy || !tenant || !consent}>{busy ? "Checking on this device…" : "Approve & share result →"}</button>
+            <button type="button" onClick={approve} disabled={busy || !tenant || !consent || (mode === "documents" && !files.length)}>{busy ? "Checking on this device…" : "Approve & share result →"}</button>
           </div>
           <p className="hint">Approve sends only a yes or no. Decline tells them you declined and sends no financial data.</p>
         </section>
@@ -129,12 +149,13 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
             <>
               <span className="seal" aria-hidden="true">✓</span><p className="kicker">Signed result shared</p>
               <p className={reply.answer ? "verdict ok" : "verdict bad"}>{reply.answer ? "Yes — meets the requirement" : "No — does not meet the requirement"}</p>
-              <p className="hint">{request.requesterName} now sees that answer. They do not see a dollar amount.</p>
+              <p className="hint">{request.requesterName} now sees that answer{reply.local?.evidence ? `, marked “${STRENGTH_LABELS[reply.local.evidence]}”` : ""}. They do not see a dollar amount or any document.</p>
             </>
           ) : (
             <p className="banner bad">{explain(reply)}</p>
           )}
-          {reply.local && (
+          {reply.local?.documents && <DocumentReport decision={reply.local.documents} />}
+          {reply.local && !reply.local.documents && (
             <div className="card private field-last">
               <p className="kicker">Only on this device — not sent</p>
               <p className="mono">
@@ -162,6 +183,12 @@ function explain(reply: Reply): string {
       return "This request expired. Nothing was sent.";
     case "wrong_question":
       return "The answer did not match the question, so it was rejected.";
+    case "documents_unusable":
+      return "None of the documents passed the checks, so nothing was signed or sent. See why below.";
+    case "no_documents":
+      return "Add at least one document first.";
+    case "bank_unavailable":
+      return `Couldn't read your bank data (${reply.message}). Nothing was sent.`;
     default:
       return reply.message || "The answer was not accepted. Nothing new was sent.";
   }

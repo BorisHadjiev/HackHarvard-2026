@@ -24,6 +24,8 @@ A landlord asks one question. The tenant's own computer pulls their bank deposit
 - ✅ Tamper check: editing the tenant app's code makes it refuse to sign (Sam)
 - ✅ Requests and used one-time codes survive a portal restart (Sam)
 - ✅ Photon texts, console fallback, and both screens (Boris)
+- ✅ Income documents read on the tenant's device: pay stubs, bank statements, W-2s, 1040s, PDF or photo (Sam)
+- ✅ Plaid bank connection in sandbox, once `PLAID_CLIENT_ID` and `PLAID_SECRET` are set (Sam)
 - ⏳ Real Nessie data (Angelo)
 
 Every placeholder in the code is marked `TODO(Angelo)`, `TODO(Sam)` or `TODO(Boris)`. Search for your name.
@@ -48,6 +50,40 @@ Then, in a second terminal: `npm run smoke` (should print 6 PASS lines). Or by h
 3. Back on :3000 the request flips to ✓ or ✗ within 2 seconds.
 
 `npm test` runs the unit tests (signing, income logic, tamper check, portal storage, and the Photon client).
+
+## Income documents and bank apps
+
+The tenant can prove income from **bank data** (demo account, Nessie, or a real banking app through Plaid) or from **income documents**. Documents are read on the tenant's machine, checked, and never uploaded. The landlord sees the answer plus how strongly it was backed:
+
+| Evidence level | When |
+|---|---|
+| Bank-verified | Computed from deposits pulled straight from the bank |
+| Signed documents | Every document used carries a valid digital signature from a trusted issuer |
+| Documents confirmed by bank | Every document used matches the bank's own records |
+| Documents only, not independently verified | Documents passed the on-device checks, but nothing independent confirmed them |
+
+A scan or photo alone can be edited, so documents need the bank or a signature to count as verified. Each document is checked for:
+- **Its own arithmetic.** Gross minus deductions equals net, statement balances add up, W-2 payroll taxes are 6.2% and 1.45%, and 1040 AGI is total income minus adjustments.
+- **Signs of editing.** The app looks at editing-tool metadata and saves made after creation, and checks that any digital signature is intact.
+- **The bank's records.** Net pay must actually arrive, and statement deposits must match.
+- **Freshness.** Pay stubs and statements must be recent, and tax forms must be from a recent finished tax year.
+
+Try it:
+
+```bash
+npm run sample-docs
+```
+
+That writes demo documents to `sample-documents/` that line up with today's demo bank data. It includes a signed pay stub and two forged ones, and `sample-documents/README.txt` says what each should do. On the consent screen, choose **Income documents**, add files, and click **Check documents first**.
+
+For a real banking app, add Plaid sandbox keys to `tenant-app/.env.local` and restart. The consent screen then shows **Connect your bank (Plaid)**, and the sandbox test login is `user_good` / `pass_good`:
+
+```
+PLAID_CLIENT_ID=...
+PLAID_SECRET=...
+```
+
+Accuracy on a labeled synthetic corpus, including photos and forgeries, is in [docs/document-accuracy.md](docs/document-accuracy.md). Regenerate it with `npm run doc-accuracy`.
 
 ## Where Photon is used
 
