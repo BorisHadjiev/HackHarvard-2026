@@ -28,6 +28,12 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   pdf-signature.ts), and a cross-check against the bank's deposits (crosscheck.ts). analyze.ts decides which
   documents count and the evidence strength. `POST /api/documents` previews; `POST /api/approve` accepts the same
   multipart form with `mode=documents`. Files are processed in memory and never written or sent.
+- Age check (`tenant-app/lib/documents/id-card.ts`): reads a government ID on the device: PDF417/AAMVA barcode
+  (`zxing-wasm`, wasm loaded from node_modules), passport/ID-card MRZ via a second OCR pass with ICAO 9303 check
+  digits, or front-of-card "DOB" text. `decideAge()` in analyze.ts turns it into yes/no. The date of birth lives in
+  `IdReadResult.private` and must never reach a report, a response, a log line or the browser; the browser gets check
+  labels and pass/fail only. `POST /api/approve` with `mode=age` on an `age_over` request signs the age claim; an
+  unreadable, expired or failed ID posts a decline instead. `POST /api/documents` with `mode=age` previews the checks.
 - Banks (`tenant-app/lib/bank.ts`): a demo account (`fetchDeposits`: Nessie or fixtures) or Plaid (`lib/plaid.ts`,
   sandbox by default, `PLAID_CLIENT_ID` / `PLAID_SECRET`). Plaid access tokens stay in process memory only.
 - Keys: `npm run keys` writes `TENANT_APP_PRIVATE_JWK` (tenant-app/.env.local) and

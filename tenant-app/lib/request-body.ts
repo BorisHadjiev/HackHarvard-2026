@@ -7,7 +7,7 @@ export interface EvidenceRequest {
   portal?: string;
   tenant?: string;
   plaidLinkId?: string;
-  mode: "bank" | "documents";
+  mode: "bank" | "documents" | "age";
   /** Documents mode: also cross-check the documents against the chosen bank data. */
   confirmWithBank: boolean;
   files: UploadedFile[];
@@ -30,7 +30,7 @@ export async function readEvidenceRequest(req: Request): Promise<EvidenceRequest
       portal: str("portal"),
       tenant: str("tenant"),
       plaidLinkId: str("plaidLinkId"),
-      mode: str("mode") === "documents" ? "documents" : "bank",
+      mode: str("mode") === "documents" ? "documents" : str("mode") === "age" ? "age" : "bank",
       confirmWithBank: str("confirmWithBank") !== "false",
       files,
       rent: str("rent") ? Number(str("rent")) : undefined,

@@ -51,6 +51,18 @@ Then, in a second terminal: `npm run smoke` (should print 6 PASS lines). Or by h
 
 `npm test` runs the unit tests (signing, income logic, tamper check, portal storage, and the Photon client).
 
+## Age check (18+)
+
+A landlord can also ask "are you at least 18?". The tenant uploads a photo or PDF of a government ID and the tenant app reads the date of birth on the tenant's own machine:
+
+1. **Driver's license or state ID:** the PDF417 barcode on the back (AAMVA format), decoded with `zxing-wasm` loaded from `node_modules`. Machine data, no guessing.
+2. **Passport or ID card:** the machine-readable zone, read by OCR and verified with the ICAO 9303 check digits. A hand-edited digit breaks a check digit, and the ID is declined with that reason.
+3. **Front of the card:** "DOB" / "Date of Birth" followed by a date, as a fallback.
+
+The checks the tenant sees: date of birth found, plausible, not expired, check digits match, barcode agrees with the front. The date of birth itself is never shown, logged, or sent anywhere, not even to the tenant's own browser. The landlord gets a signed yes or no. An ID that is under 18 gives a signed no; an unreadable, expired or failed ID signs nothing and the landlord sees "declined".
+
+Every age claim is labeled "documents only, not independently verified": a photo of an ID can be forged and nothing on a laptop can prove it came from a real issuer. The production version reads a state-signed mobile driver's license (ISO/IEC 18013-5) instead.
+
 ## Income documents and bank apps
 
 The tenant can prove income from **bank data** (demo account, Nessie, or a real banking app through Plaid) or from **income documents**. Documents are read on the tenant's machine, checked, and never uploaded. The landlord sees the answer plus how strongly it was backed:
