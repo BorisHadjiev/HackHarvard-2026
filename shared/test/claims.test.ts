@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { decodeJwt } from "jose";
 import { generateSigningKeys, signClaim, verifyClaim, pairwiseSubject, ClaimError, CLAIM_TTL_SECONDS } from "../src/index";
 import type { ClaimPayload } from "../src/index";
 
@@ -64,4 +65,38 @@ test("pairwise subject differs per landlord and is stable", async () => {
   const b = await pairwiseSubject("tenant-secret", "landlord-b");
   assert.equal(a1, a2);
   assert.notEqual(a1, b);
+});
+
+test("two claims signed 10 minutes apart in the same hour have identical iat (and exp)", async () => {
+  const { privateJwk } = await generateSigningKeys();
+  const a = decodeJwt(await signClaim(payload(), privateJwk, new Date("2026-10-17T14:20:00Z")));
+  const b = decodeJwt(await signClaim(payload(), privateJwk, new Date("2026-10-17T14:30:00Z")));
+  assert.equal(a.iat, b.iat);
+  assert.equal(a.exp, b.exp);
+  assert.equal(a.iat, Date.parse("2026-10-17T14:00:00Z") / 1000, "rounded down to the start of the UTC hour");
+});
+
+test("iat is always a multiple of 3600 and exp is iat + CLAIM_TTL_SECONDS", async () => {
+  const { privateJwk } = await generateSigningKeys();
+  const edges = ["2026-10-17T00:00:00.000Z", "2026-10-17T00:00:00.001Z", "2026-10-17T23:59:59.999Z", "2026-12-31T23:30:00Z", "2028-02-29T12:00:00.500Z"];
+  const random = Array.from({ length: 50 }, () => new Date(Date.UTC(2026, 0, 1) + Math.floor(Math.random() * 3 * 365 * 86_400_000)));
+  for (const when of [...edges.map((d) => new Date(d)), ...random]) {
+    const { iat, exp } = decodeJwt(await signClaim(payload(), privateJwk, when));
+    assert.equal(iat! % 3600, 0, `iat for ${when.toISOString()} is not on the hour`);
+    assert.ok(iat! <= when.getTime() / 1000 && when.getTime() / 1000 - iat! < 3600, `iat for ${when.toISOString()} is not the start of its hour`);
+    assert.equal(exp, iat! + CLAIM_TTL_SECONDS);
+  }
+});
+
+test("a claim signed at 12:59 verifies until its exp, and not after", async () => {
+  const { privateJwk, publicJwk } = await generateSigningKeys();
+  const signedAt = new Date("2026-10-17T12:59:00Z");
+  const token = await signClaim(payload(), privateJwk, signedAt);
+  const { exp } = decodeJwt(token);
+  assert.equal(exp, Date.parse("2026-10-17T12:00:00Z") / 1000 + CLAIM_TTL_SECONDS);
+
+  const at = (unixSeconds: number) => ({ ...opts, now: new Date(unixSeconds * 1000) });
+  await verifyClaim(token, publicJwk, { ...opts, now: signedAt }); // right after signing
+  await verifyClaim(token, publicJwk, at(exp! - 1)); // last valid second
+  await expectCode(verifyClaim(token, publicJwk, at(exp!)), "expired");
 });
