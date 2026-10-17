@@ -7,8 +7,12 @@ export const CLAIM_ALG = "EdDSA"; // Ed25519 keys
 export const CLAIM_ISSUER = "need-to-know-tenant-app";
 /** How long a signed claim stays valid. */
 export const CLAIM_TTL_SECONDS = 7 * 24 * 60 * 60;
-/** `iat` is rounded down to this, so landlords pooling claims can't link them by exact signing time. */
-export const IAT_ROUNDING_SECONDS = 60 * 60;
+/**
+ * `iat` is rounded down to the start of the UTC day, so landlords pooling claims can't link them by
+ * signing time (an hour would still separate tenants who answer at different times of day).
+ * Trade-off: a claim lives between 6 and 7 days, depending on the time of day it was signed.
+ */
+export const IAT_ROUNDING_SECONDS = 24 * 60 * 60;
 
 export type ClaimErrorCode =
   | "bad_signature"
@@ -34,7 +38,7 @@ export async function generateSigningKeys(): Promise<{ privateJwk: JWK; publicJw
 /** Sign a claim with the tenant app's private key. Returns a compact JWS string. */
 export async function signClaim(payload: ClaimPayload, privateJwk: JWK, now = new Date()): Promise<string> {
   const key = await importJWK(privateJwk, CLAIM_ALG);
-  // Rounded down to the hour (collusion test): every claim signed in the same hour carries the same iat/exp.
+  // Rounded down to UTC midnight (collusion test): every claim signed on the same UTC day carries the same iat/exp.
   const iat = Math.floor(now.getTime() / 1000 / IAT_ROUNDING_SECONDS) * IAT_ROUNDING_SECONDS;
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: CLAIM_ALG, typ: "JWT" })

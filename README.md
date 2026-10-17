@@ -74,7 +74,7 @@ Starter prompt for Codex:
 
 Branch: `sam/tamper-check`
 
-Done: real tamper check, persistent portal store, `iat` rounded to the hour for the collusion test.
+Done: real tamper check, persistent portal store, `iat` rounded down to the UTC day for the collusion test.
 
 **Tamper check (turn it on for the demo):**
 
@@ -111,7 +111,7 @@ Starter prompt for Cursor:
 The same tenant proves the income fact to two different landlords. The landlords pool everything they received and try to tell whether it was the same person, and fail.
 
 - Each landlord already gets a different pairwise ID (`sub`) for the same tenant.
-- Everything else in the claim must be the same for every tenant or too coarse to link: one shared app signing key (never per-tenant), timestamps rounded to the hour, no IP/device data stored by the portal.
+- Everything else in the claim must be the same for every tenant or too coarse to link: one shared app signing key (never per-tenant), timestamps rounded down to the UTC day, no IP/device data stored by the portal.
 - Build `scripts/collusion-test.ts`: two portal audiences, two tenants, each answers both; pool the 4 claims and show matching them back to tenants is no better than a coin flip. Boris builds a side-by-side demo screen; Angelo makes the slide.
 
 ---

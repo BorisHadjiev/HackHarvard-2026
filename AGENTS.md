@@ -26,7 +26,7 @@ answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, subm
   `TENANT_APP_PUBLIC_JWK` (landlord-portal/.env.local).
 
 ## Signed claim (ClaimPayload in shared/src/types.ts)
-`{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the hour), `exp` (7 days).
+`{ aud, nonce, sub (pairwise), claim: { type: "income_to_rent", multiple, rent, result }, evidence: { source, window_days, method }, build: { hash, integrity } }` + `iss`, `iat` (rounded down to the UTC day), `exp` (7 days).
 The portal checks, in order: signature, issuer, audience, expiry, nonce matches the open request, nonce not
 already used, build hash trusted (when `TRUSTED_BUILD_HASHES` is set), question matches.
 
