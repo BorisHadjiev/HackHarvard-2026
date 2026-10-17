@@ -26,9 +26,14 @@ export async function POST(req: Request) {
     if (claim.claim.rent !== request.question.rent || claim.claim.multiple !== request.question.multiple) {
       return NextResponse.json({ ok: false, code: "wrong_question" }, { status: 400 });
     }
+    // Check again: two answers sent at once could both pass the first check while verifyClaim awaited.
+    if (store.usedNonces.has(request.nonce)) {
+      return NextResponse.json({ ok: false, code: "replayed", message: "This one-time code was already used" }, { status: 409 });
+    }
     store.usedNonces.add(request.nonce);
     request.status = "verified";
     request.result = { answer: claim.claim.result, verifiedAt: new Date().toISOString() };
+    store.save(); // the used nonce must be on disk before we answer, or a restart would allow a replay
     return NextResponse.json({ ok: true, answer: claim.claim.result });
   } catch (err) {
     if (err instanceof ClaimError) {
