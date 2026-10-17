@@ -12,12 +12,14 @@
   "scripts": {
     "setup": "npm install && npm run keys",
     "keys": "tsx scripts/gen-keys.ts",
+    "sign-manifest": "tsx scripts/sign-manifest.ts",
     "dev": "concurrently -n portal,tenant -c blue,green \"npm run dev -w landlord-portal\" \"npm run dev -w tenant-app\"",
     "dev:portal": "npm run dev -w landlord-portal",
     "dev:tenant": "npm run dev -w tenant-app",
-    "test": "npm test -w shared && npm test -w tenant-app && npm test -w messaging",
+    "test": "npm test -w shared && npm test -w tenant-app && npm test -w landlord-portal && npm test -w messaging",
     "build": "npm run build -w landlord-portal && npm run build -w tenant-app",
-    "smoke": "tsx scripts/smoke-test.ts"
+    "smoke": "tsx scripts/smoke-test.ts",
+    "collusion": "tsx scripts/collusion-test.ts"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",
