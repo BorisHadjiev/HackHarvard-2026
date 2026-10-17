@@ -51,7 +51,7 @@ Demo bank income answers include a real Noir/Barretenberg proof. The separate ba
 
 When trusted bank keys are configured, bank-strength claims require the proof. This protects against changing the answer or substituting deposits without a matching bank attestation. It relies on the bank signing accurate data. The demo signer is an unauthenticated stand-in; a production issuer must control the signing key and authenticate data access. Documents, age and the current Plaid path do not use this proof.
 
-Change the circuit in `zk/circuit/src/main.nr`, then run `npm run compile:zk` and commit the generated artifact. Additional adversarial end-to-end enforcement tests are in [integration PR #22](https://github.com/BorisHadjiev/HackHarvard-2026/pull/22).
+Change the circuit in `zk/circuit/src/main.nr`, then run `npm run compile:zk` and commit the generated artifact. Run `npm run smoke:zk` against the three local services to check missing or tampered proofs, bank signatures, request binding, result consistency and replay rejection. See [docs/zero-knowledge.md](docs/zero-knowledge.md) for setup, public inputs, limits and deployment requirements.
 
 ## Configuration
 
@@ -67,7 +67,8 @@ Change the circuit in `zk/circuit/src/main.nr`, then run `npm run compile:zk` an
 ```bash
 npm test
 npm run build
-npm run smoke          # requires both apps running
+npm run smoke          # requires the portal, tenant app and bank signer running
+npm run smoke:zk       # same three services
 npm run collusion
 npm run doc-accuracy
 ```

@@ -26,7 +26,8 @@
     "doc-accuracy": "tsx scripts/document-accuracy.ts",
     "dev:bank": "npm run dev -w bank-signer",
     "start:bank": "npm run start -w bank-signer",
-    "compile:zk": "npm run compile -w zk"
+    "compile:zk": "npm run compile -w zk",
+    "smoke:zk": "tsx scripts/zk-smoke-test.ts"
   },
   "devDependencies": {
     "concurrently": "^10.0.6",

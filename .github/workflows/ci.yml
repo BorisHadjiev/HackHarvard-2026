@@ -50,13 +50,16 @@ jobs:
           npm run start -w tenant-app > tenant.log 2>&1 &
           npm run start -w bank-signer > bank.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://localhost:3000/api/requests > /dev/null && curl -sf http://localhost:3001/ > /dev/null && exit 0
+            curl -sf http://localhost:3000/api/requests > /dev/null && curl -sf http://localhost:3001/ > /dev/null && curl -sf http://localhost:3002/ > /dev/null && exit 0
             sleep 1
           done
           echo "Apps did not start"; cat portal.log tenant.log bank.log; exit 1
 
       - name: End-to-end smoke test
         run: npm run smoke
+
+      - name: Zero-knowledge enforcement smoke test
+        run: npm run smoke:zk
 
       - name: Collusion test (once it exists)
         if: hashFiles('scripts/collusion-test.ts') != ''
