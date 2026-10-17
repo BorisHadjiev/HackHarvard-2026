@@ -1,11 +1,11 @@
 # Need-to-Know
 
-[![CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml/badge.svg)](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) Every push and PR runs unit tests, builds both apps and runs the end-to-end smoke test (plus the collusion test once it exists). Don't merge a red PR.
+[![CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml/badge.svg)](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) Every push and PR runs unit tests, builds both apps, runs the end-to-end smoke test, and runs the collusion test. Don't merge a red PR.
 
-**Prove one fact about yourself (income ≥ 3× rent, age ≥ 18) without handing over a single document.**
+**Prove income ≥ 3× rent without handing over a single document.**
 HackHarvard 2026 · Digital Trust track · Capital One Nessie + Photon challenges.
 
-A landlord asks one question. The tenant's own computer pulls their bank deposits, computes the answer locally, and sends back only a signed yes or no. The landlord sees ✓ or ✗, never balances, statements or IDs.
+A landlord asks one question. The tenant's own computer pulls their bank deposits, computes the answer locally, and sends back only a signed yes or no. The landlord sees ✓ or ✗, never balances, statements or IDs. The signature is Ed25519 (`jose`). This build does not use a zero-knowledge proof.
 
 > **Deadline: Devpost submission by 7:45 AM Sunday Oct 18 (hard deadline 8:00 AM).** MVP freeze and `demo-stable` tag at **6:00 PM Saturday**.
 
@@ -26,7 +26,10 @@ A landlord asks one question. The tenant's own computer pulls their bank deposit
 - ✅ Photon texts, console fallback, and both screens (Boris)
 - ✅ Income documents read on the tenant's device: pay stubs, bank statements, W-2s, 1040s, PDF or photo (Sam)
 - ✅ Plaid bank connection in sandbox, once `PLAID_CLIENT_ID` and `PLAID_SECRET` are set (Sam)
-- ⏳ Real Nessie data (Angelo)
+- ✅ Unlinkability check: `npm run collusion` (pairwise subject, `iat` rounded to the UTC day)
+- ⏳ Real Nessie data, when `NESSIE_API_KEY` is unset the app uses fixtures (Angelo)
+- ⏳ Age 18+. Specified in [docs/age-verification.md](docs/age-verification.md). The only claim type in code is `income_to_rent`
+- ⏳ Zero-knowledge proofs. A bank answer is a signed boolean. [docs/threat-model.md](docs/threat-model.md) names zkTLS only as a later way to show the deposits came from the bank
 
 Every placeholder in the code is marked `TODO(Angelo)`, `TODO(Sam)` or `TODO(Boris)`. Search for your name.
 
@@ -84,6 +87,8 @@ PLAID_SECRET=...
 ```
 
 Accuracy on a labeled synthetic corpus, including photos and forgeries, is in [docs/document-accuracy.md](docs/document-accuracy.md). Regenerate it with `npm run doc-accuracy`.
+
+One real demo statement is still rejected. [docs/scanner-fixes.md](docs/scanner-fixes.md) explains why: month-name dates, `+$` credits, a label-row summary, and two statements in one PDF are parser gaps, and that file also has a future period end and withdrawal totals that do not match its rows. `npm run sample-docs` files are the ones the demo path is written for.
 
 ## Where Photon is used
 
@@ -152,14 +157,23 @@ Starter prompt for Cursor:
 
 ---
 
-## Next, right after the MVP: collusion test (unlinkability)
+## Unlinkability (collusion test)
 
 **"Even if every website compares notes, they can't track you."**
-The same tenant proves the income fact to two different landlords. The landlords pool everything they received and try to tell whether it was the same person, and fail.
 
-- Each landlord already gets a different pairwise ID (`sub`) for the same tenant.
-- Everything else in the claim must be the same for every tenant or too coarse to link: one shared app signing key (never per-tenant), timestamps rounded down to the UTC day, no IP/device data stored by the portal.
-- Build `scripts/collusion-test.ts`: two portal audiences, two tenants, each answers both; pool the 4 claims and show matching them back to tenants is no better than a coin flip. Boris builds a side-by-side demo screen; Angelo makes the slide.
+`npm run collusion` is in the repo and in CI. It needs no servers. Twenty synthetic tenants each answer two landlords. The script pools the decoded claims and checks that matching them back to a person stays within random noise (baseline 5%).
+
+- Each landlord gets a different pairwise ID (`sub`) for the same tenant.
+- One shared app signing key, never a per-tenant key.
+- `iat` is rounded down to the UTC day, and `exp` is derived from that.
+- The portal does not store an IP, device id, or account id.
+
+How the measurement works, and what it does not cover, is in [docs/collusion-test.md](docs/collusion-test.md). The landlord portal also has a side-by-side page at `/unlinkability`.
+
+## Not in this build
+
+- **Age 18+.** [docs/age-verification.md](docs/age-verification.md) and the copy-paste prompts in [docs/age-verification-prompts.md](docs/age-verification-prompts.md). `ClaimType` is still only `"income_to_rent"`.
+- **Zero-knowledge proofs.** The landlord checks an Ed25519 signature, the audience, the expiry, the one-time nonce, and the build hash. A patched app that skips the income math can still sign a false yes unless the tamper check and `TRUSTED_BUILD_HASHES` stop it. Document answers and Plaid answers are the same kind of signed boolean, plus a coarse evidence level. A Noir circuit proved with Barretenberg UltraHonk is on the unmerged branch `sam/zk-proof`; `main` does not include it.
 
 ---
 
@@ -180,16 +194,16 @@ landlord-portal (:3000)                tenant app (:3001, the tenant's own machi
 | Folder | What | Owner |
 |---|---|---|
 | `shared/` | Types (`VerificationRequest`, `ClaimPayload`), sign/verify with `jose` (Ed25519) | Sam |
-| `tenant-app/` | Consent screen, Nessie fetch, income math, tamper check, signing | Angelo (data/math), Sam (integrity), Boris (UI) |
-| `landlord-portal/` | Create requests, verify claims, show result | Boris (UI), Sam (storage) |
-| `messaging/` | Photon 2.0 client | Boris |
-| `scripts/` | `gen-keys`, `smoke-test`, `seed-nessie`, `sign-manifest` | All |
-| `docs/` | Threat model, pitch notes | Angelo |
+| `tenant-app/` | Consent screen, Nessie or Plaid fetch, income math, on-device documents, tamper check, signing | Angelo (data/math), Sam (integrity, documents, Plaid), Boris (UI) |
+| `landlord-portal/` | Create requests, verify claims, show result, `/unlinkability` | Boris (UI), Sam (storage) |
+| `messaging/` | Photon 2.0 client (SMS by default; Spectrum iMessage when `PHOTON_PLATFORM=imessage`) | Boris |
+| `scripts/` | `gen-keys`, `smoke-test`, `collusion-test`, `seed-nessie`, `sign-manifest`, `sample-docs`, `doc-accuracy` | All |
+| `docs/` | Threat model, document accuracy, age-verification plan, scanner diagnosis | Angelo |
 
 ## Rules
 
 - **Never commit secrets.** Keys live in `*/.env.local` (git-ignored). Share API keys in the group chat.
-- **Never hand-roll crypto.** Everything goes through `jose`.
+- **Never hand-roll crypto.** Claims go through `jose`. PDF signatures are CMS/PKCS#7, which `jose` does not verify, so `tenant-app/lib/documents/pdf-signature.ts` uses PKI.js on WebCrypto.
 - **The signed claim never contains dollar amounts or documents.** `npm run smoke` checks this.
 - **`shared/` changes:** announce in the group chat. Both apps import it.
 - **6:00 PM:** tag `demo-stable`. If anything breaks later, demo from that tag.
