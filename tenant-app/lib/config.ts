@@ -9,6 +9,8 @@ export function tenantConfig() {
     // Secret used to derive a different tenant ID for every landlord.
     tenantSecret: process.env.TENANT_SECRET ?? "dev-tenant-secret",
     defaultPortalUrl: process.env.DEFAULT_PORTAL_URL ?? "http://localhost:3000",
+    // The stand-in bank that signs deposit commitments for zero-knowledge proofs. Empty = proofs off.
+    bankSignerUrl: process.env.BANK_SIGNER_URL ?? "http://localhost:3002",
     nessie: {
       apiKey: process.env.NESSIE_API_KEY ?? "",
       baseUrl: process.env.NESSIE_BASE_URL ?? "http://api.nessieisreal.com",

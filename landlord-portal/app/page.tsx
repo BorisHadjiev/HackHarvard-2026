@@ -217,7 +217,7 @@ function Status({ r }: { r: VerificationRequest }) {
     return (
       <div role="status">
         <p className={r.result.answer ? "verdict ok" : "verdict bad"}>{label}</p>
-        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}</p>
+        <p className={evidence === "document_unverified" ? "meta evidence weak" : "meta evidence"}>{EVIDENCE_LABELS[evidence]}{r.result.proof === "zk" ? " · proven in zero knowledge" : ""}</p>
       </div>
     );
   }

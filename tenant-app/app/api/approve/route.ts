@@ -6,6 +6,8 @@ import { evaluateIncome } from "@/lib/income";
 import { buildClaimPayload, buildAgeClaimPayload } from "@/lib/claim";
 import { getBankDeposits, parseBankChoice } from "@/lib/bank";
 import { analyzeDocuments, analyzeIdDocuments, decideAge } from "@/lib/documents/analyze";
+import { proveWithBank, BankSignerError, type ZkEvidence } from "@/lib/zk-prove";
+import { METHOD as ZK_METHOD, WINDOW_DAYS as ZK_WINDOW_DAYS } from "@ntk/zk";
 import { summarizeAge, summarizeDecision } from "@/lib/documents/summary";
 import { declineNotice, deliveryFromScan } from "@/lib/document-outcome";
 import { readEvidenceRequest } from "@/lib/request-body";
@@ -32,6 +34,7 @@ export async function POST(req: Request) {
   let income;
   let evidence: ClaimPayload["evidence"] | undefined;
   let local: Record<string, unknown>;
+  let zk: ZkEvidence | undefined;
   try {
     if (body.mode === "documents") {
       if (!body.files.length) return NextResponse.json({ ok: false, code: "no_documents", message: "Add at least one document" }, { status: 400 });
@@ -57,9 +60,19 @@ export async function POST(req: Request) {
       const { deposits, source } = await getBankDeposits(choice);
       income = evaluateIncome(deposits, rent, multiple);
       local = { dataSource: source, medianMonthlyIncome: income.medianMonthlyIncome, evidence: "bank" };
+      // Demo bank accounts: the bank signs the deposits and this device proves the rule in zero knowledge.
+      // (Plaid data isn't bank-signed yet, so that path sends the signed claim alone.)
+      if (!choice.plaidLinkId && cfg.bankSignerUrl) {
+        const proven = await proveWithBank(cfg.bankSignerUrl, choice.tenant, request);
+        zk = proven.zk;
+        income = { ...income, meets: proven.result }; // the proof's answer is the answer
+        evidence = { source: "bank", strength: "bank", window_days: ZK_WINDOW_DAYS, method: ZK_METHOD };
+        local = { ...local, proof: { provingMs: proven.provingMs, publicInputs: proven.zk.publicInputs.length } };
+      }
     }
   } catch (err) {
-    return NextResponse.json({ ok: false, code: "bank_unavailable", message: (err as Error).message }, { status: 502 });
+    const code = err instanceof BankSignerError ? "bank_signer_unavailable" : "bank_unavailable";
+    return NextResponse.json({ ok: false, code, message: (err as Error).message }, { status: 502 });
   }
 
   const payload = await buildClaimPayload(request, { id: choice.tenant, secret: cfg.tenantSecret }, income, integrity, evidence);
@@ -68,7 +81,7 @@ export async function POST(req: Request) {
   const verdict = await fetch(`${portal}/api/claims`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ requestId: request.id, token }),
+    body: JSON.stringify({ requestId: request.id, token, zk }),
   });
   const portalReply = await verdict.json();
 

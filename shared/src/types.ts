@@ -53,7 +53,7 @@ export interface VerificationRequest {
   expiresAt: string; // ISO date; the request itself expires
   status: "pending" | "verified" | "rejected";
   /** Filled in once a claim is accepted. Never contains dollar amounts. */
-  result?: { answer: boolean; verifiedAt: string; evidence?: EvidenceStrength };
+  result?: { answer: boolean; verifiedAt: string; evidence?: EvidenceStrength; proof?: "zk" };
 }
 
 /** The body of the signed claim. Contains no dollar amounts or documents. */

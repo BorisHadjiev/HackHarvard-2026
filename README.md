@@ -51,6 +51,18 @@ Then, in a second terminal: `npm run smoke` (should print 6 PASS lines). Or by h
 
 `npm test` runs the unit tests (signing, income logic, tamper check, portal storage, and the Photon client).
 
+## Zero-knowledge proof: the yes/no can't be faked
+
+For bank-backed answers the tenant's device doesn't just *say* yes or no. It proves it.
+
+1. **The bank signs the data.** The tenant app asks the bank for the deposit list. The bank returns it together with a signature over a commitment (a hash) of that exact list, salted per request. For the hackathon a stand-in bank service (`bank-signer/`, port 3002) plays this role with its own key, which the tenant app never holds. In production this is the bank or an open-banking provider.
+2. **The device proves the rule.** A Noir circuit (`zk/circuit/src/main.nr`) takes the deposits as private inputs and proves "median monthly recurring income ≥ multiple × rent" for the list behind that commitment, bound to the landlord's rent, multiple and one-time code. Proving takes about a second on a laptop.
+3. **The landlord verifies both.** The portal checks the bank's signature (`TRUSTED_BANK_KEYS`) and the proof, and that the proof's answer matches the signed claim. It never sees a deposit, only a hash it can't invert and a proof it can't forge.
+
+What this stops: a tenant who edits the app to always say yes, invents deposits, replays a proof from another request, or flips the answer. What it doesn't stop: a bank that signs false data, or a device compromised below the app. Without a bank connection (documents, or Plaid until it signs data) the answer carries no proof, and the landlord sees that.
+
+When `TRUSTED_BANK_KEYS` is set, the portal rejects any bank-backed answer that arrives without a proof. `npm run keys` sets it up locally. Circuit changes: edit `main.nr`, then `npm run compile:zk`.
+
 ## Age check (18+)
 
 A landlord can also ask "are you at least 18?". The tenant uploads a photo or PDF of a government ID and the tenant app reads the date of birth on the tenant's own machine:
