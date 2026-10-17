@@ -32,6 +32,15 @@ jobs:
       - name: Unit tests (shared + tenant-app)
         run: npm test
 
+      - name: Synthetic income and age accuracy against main
+        run: |
+          git fetch origin main --depth=1
+          git show origin/main:scripts/document-accuracy.ts > scripts/.income-accuracy-baseline.ts
+          npx tsx scripts/.income-accuracy-baseline.ts > income-baseline.log
+          cp docs/document-accuracy.md /tmp/ntk-income-baseline.md
+          rm scripts/.income-accuracy-baseline.ts
+          npm run doc-accuracy -- --income-baseline /tmp/ntk-income-baseline.md
+
       - name: Build both apps
         run: npm run build
 
