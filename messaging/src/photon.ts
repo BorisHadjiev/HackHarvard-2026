@@ -1,7 +1,6 @@
 // Photon 2.0 client (beta API, https://api.photon.codes/v1).
 // Texts the tenant a request link. Owner: Boris.
 import { randomUUID } from "node:crypto";
-import { Photon } from "@photon-ai/api";
 
 export const PHOTON_PLATFORMS = ["sms", "imessage", "whatsapp", "whatsapp_business", "telegram", "email"] as const;
 export type PhotonPlatform = (typeof PHOTON_PLATFORMS)[number];
@@ -204,17 +203,20 @@ export async function startSpectrumInbox(
 }
 
 function createBetaClient(config: PhotonConfig): PhotonMessagingClient {
-  const photon = new Photon({ headers: { Authorization: `Bearer ${config.apiKey}` } });
+  // Loaded on use. A static import breaks portal tests, which run as CommonJS.
+  const client = import("@photon-ai/api").then(
+    ({ Photon }) => new Photon({ headers: { Authorization: `Bearer ${config.apiKey}` } }),
+  );
   return {
     async createOrGetUser(handle, platform) {
-      const user = await photon.projects.createOrGetUser({
+      const user = await (await client).projects.createOrGetUser({
         path: { id: config.projectId },
         body: { handle, platform },
       });
       return { id: resourceId(user, "user") };
     },
     async createOrGetSpace(participantIds, platform, idempotencyKey) {
-      const space = await photon.projects.createOrGetSpace({
+      const space = await (await client).projects.createOrGetSpace({
         path: { id: config.projectId },
         headers: { "idempotency-key": idempotencyKey },
         body: { participantIds, platform },
@@ -222,7 +224,7 @@ function createBetaClient(config: PhotonConfig): PhotonMessagingClient {
       return { id: resourceId(space, "space") };
     },
     async sendMessage({ spaceId, senderId, text, idempotencyKey }) {
-      const sent = await photon.projects.sendMessage({
+      const sent = await (await client).projects.sendMessage({
         path: { id: config.projectId },
         headers: { "idempotency-key": idempotencyKey },
         body: {

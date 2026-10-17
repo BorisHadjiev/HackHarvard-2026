@@ -9,7 +9,7 @@ export async function register() {
   }
   try {
     await startSpectrumInbox(config, async (phone, text) => {
-      const { approveYesPayload } = await import("./lib/yes");
+      const { handleTenantText } = await import("./lib/text-reply");
       const payload = {
         type: "message.received",
         data: {
@@ -19,7 +19,7 @@ export async function register() {
           },
         },
       };
-      const result = await approveYesPayload(payload, process.env.PORTAL_ORIGIN?.trim() || "http://localhost:3000");
+      const result = await handleTenantText(payload, process.env.PORTAL_ORIGIN?.trim() || "http://localhost:3000");
       if (result.body.ignored) return;
       console.log(`[photon] inbound from ${phone} -> ${result.status}`);
     });

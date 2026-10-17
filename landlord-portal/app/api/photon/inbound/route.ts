@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { approveYesPayload } from "@/lib/yes";
+import { handleTenantText } from "@/lib/text-reply";
 
 function inboundSecretOk(req: Request): boolean {
   const expected = process.env.PHOTON_INBOUND_SECRET?.trim();
@@ -12,11 +12,11 @@ function inboundSecretOk(req: Request): boolean {
   return timingSafeEqual(a, b);
 }
 
-// Photon message.received webhook. YES approves the latest request texted to that phone.
+// Photon message.received webhook. YES approves the latest request. NO declines it here.
 export async function POST(req: Request) {
   if (!inboundSecretOk(req)) return NextResponse.json({ ok: false, code: "unauthorized" }, { status: 401 });
   const payload = await req.json().catch(() => null);
-  const result = await approveYesPayload(payload, new URL(req.url).origin);
+  const result = await handleTenantText(payload, new URL(req.url).origin);
 
   return NextResponse.json(result.body, { status: result.status });
 }
