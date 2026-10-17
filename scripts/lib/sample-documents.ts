@@ -4,6 +4,7 @@ import { generateKeyPairSync } from "node:crypto";
 import forge from "node-forge";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import sharp from "sharp";
+import { fixtureDeposits } from "../../tenant-app/lib/nessie";
 import { plainAddPlaceholder } from "@signpdf/placeholder-plain";
 import { P12Signer } from "@signpdf/signer-p12";
 import signpdfModule from "@signpdf/signpdf";
@@ -237,16 +238,22 @@ export function demoDocumentData(now = new Date()) {
   const leoCrude = { ...leo, gross: 4650.68, grossYtd: r2(leo.grossYtd * 4650.68 / leo.gross) };
   const leoCareful = payStub({ employer: "Bean There Cafe Payroll", employee: "Leo Okafor", payDate: leo.payDate, gross: 4650.68 });
 
-  const stmtEnd = isoDaysAgo(now, 2);
-  const stmtStart = isoDaysAgo(now, 30);
-  const mayaDeposits: StatementTx[] = [3, 17].map((n) => ({ date: isoDaysAgo(now, n), desc: "ACME CORP PAYROLL PPD", amount: 4100 }));
+  // A completed calendar month, never a statement covering days still in the future.
+  const start = new Date(Date.UTC(year, now.getUTCMonth() - 1, 1));
+  const stmtStart = start.toISOString().slice(0, 10);
+  const stmtEnd = new Date(Date.UTC(year, now.getUTCMonth(), 0)).toISOString().slice(0, 10);
+  const monthDay = (day: number) => new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), day)).toISOString().slice(0, 10);
+  const mayaDeposits: StatementTx[] = fixtureDeposits("maya", now)
+    .filter((d) => d.date >= stmtStart && d.date <= stmtEnd)
+    .sort((a, b) => a.date.localeCompare(b.date)).slice(-2)
+    .map((d) => ({ date: d.date, desc: "ACME CORP PAYROLL PPD", amount: d.amount }));
   const mayaStatement: StatementData = {
     bank: "Northwind Community Bank", holder: "Maya Patel", periodStart: stmtStart, periodEnd: stmtEnd, opening: 3120.55,
     deposits: mayaDeposits,
     withdrawals: [
-      { date: isoDaysAgo(now, 28), desc: "RENT - ELM ST APTS", amount: 2100 },
-      { date: isoDaysAgo(now, 20), desc: "GROCERY MART", amount: 182.4 },
-      { date: isoDaysAgo(now, 9), desc: "CITY POWER & LIGHT", amount: 96.15 },
+      { date: monthDay(1), desc: "RENT - ELM ST APTS", amount: 2100 },
+      { date: monthDay(10), desc: "GROCERY MART", amount: 182.4 },
+      { date: monthDay(20), desc: "CITY POWER & LIGHT", amount: 96.15 },
     ],
   };
   const mayaW2 = w2({ taxYear: year - 1, employer: "Acme Corp", employee: "Maya Patel", wages: 142800, pretax: 6000 });

@@ -90,22 +90,25 @@ export async function extractDocument(file: UploadedFile, trustedSigners: string
     const facts = await pdfFacts(file.data, trustedSigners);
     const doc = await getDocumentProxy(new Uint8Array(file.data));
     const { items, totalPages } = await extractTextItems(doc);
-    const lines = items.flatMap((page) => itemsToLines(page));
-    if (lines.join("").replace(/\s/g, "").length >= 40) return { lines, method: "pdf_text", pdf: facts };
+    const pages = items.map((page) => itemsToLines(page));
+    const lines = pages.flat();
+    if (lines.join("").replace(/\s/g, "").length >= 40) return { lines, pages, method: "pdf_text", pdf: facts };
 
     // Scanned PDF: no text layer. OCR the page images (first 3 pages).
-    const ocrLines: string[] = [];
+    const ocrPages: string[][] = [];
     const confidences: number[] = [];
     for (let p = 1; p <= Math.min(totalPages, 3); p++) {
+      const pageLines: string[] = [];
       for (const img of await extractImages(doc, p)) {
         if (img.width < 300) continue;
         const res = await ocrImage(await prepareForOcr(await pixelsToPng(img)));
-        ocrLines.push(...res.lines);
+        pageLines.push(...res.lines);
         confidences.push(res.confidence);
       }
+      ocrPages.push(pageLines);
     }
     const confidence = confidences.length ? Math.round(confidences.reduce((a, b) => a + b, 0) / confidences.length) : 0;
-    return { lines: ocrLines, method: "pdf_ocr", ocrConfidence: confidence, pdf: facts };
+    return { lines: ocrPages.flat(), pages: ocrPages, method: "pdf_ocr", ocrConfidence: confidence, pdf: facts };
   }
   if (isImage(file)) {
     const res = await ocrImage(await prepareForOcr(file.data));

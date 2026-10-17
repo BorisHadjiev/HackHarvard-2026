@@ -148,6 +148,7 @@ export default function Consent({ request, portal, tenants, recordedAnswer = nul
           {reply.ok && reply.outcome === "declined" ? (
             <>
               <p className="verdict declined">Declined</p>
+              {reply.local?.documents?.reason && <p className="banner bad">{reply.local.documents.reason}</p>}
               <p className="hint">The document check declined this request. {request.requesterName} can see that. No document, balance, or dollar amount was sent.</p>
             </>
           ) : reply.ok ? (
@@ -189,7 +190,7 @@ function explain(reply: Reply): string {
     case "wrong_question":
       return "The answer did not match the question, so it was rejected.";
     case "documents_unusable":
-      return "None of the documents passed the checks, so nothing was signed or sent. See why below.";
+      return reply.local?.documents?.reason ?? reply.message ?? "None of the documents passed the checks, so nothing was signed or sent. See why below.";
     case "decline_failed":
       return "The document was not accepted, and the landlord was not updated. Nothing financial was sent.";
     case "no_documents":

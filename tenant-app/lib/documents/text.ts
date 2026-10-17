@@ -16,12 +16,12 @@ export function cleanOcrLine(line: string): string {
     .replace(/(?<=\d) (?=\d{3}\.\d{2}\b)/g, ",") // "4 100.00" -> "4,100.00"
     .replace(/(?<=\d), (?=\d{3}\b)/g, ",")
     .replace(/(?<=\d) \. ?(?=\d{2}\b)/g, ".")
-    .replace(/\s+/g, " ")
+    .replace(/\s+/g, (space) => space.length >= 3 ? "   " : " ")
     .trim();
 }
 
-const MONEY = /\(?-?\$?\s?(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}\)?/g;
-const WHOLE_DOLLARS = /\(?-?\$?\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?\)?(?![\d/])/g;
+const MONEY = /\(?[+-]?\$?\s?(?:\d{1,3}(?:,\d{3})+|\d+)\.\d{2}\)?/g;
+const WHOLE_DOLLARS = /\(?[+-]?\$?\s?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{2})?\)?(?![\d/])/g;
 
 export function parseMoney(token: string): number {
   const negative = /^\(.*\)$/.test(token.trim()) || token.includes("-");
@@ -45,6 +45,15 @@ export function amountsFor(lines: string[], label: RegExp, opts: { wholeDollars?
   for (let i = 0; i < lines.length; i++) {
     const m = label.exec(lines[i]);
     if (!m) continue;
+    // A summary can print labels across one row and amounts across the next.
+    // Read the matching column, never another label's amount.
+    const columns = lines[i].trim().split(/\s{3,}/);
+    const values = lines[i + 1]?.trim().split(/\s{3,}/) ?? [];
+    if (columns.length > 1 && !read(lines[i]).length && values.some((v) => read(v).length)) {
+      const column = columns.findIndex((c) => label.test(c));
+      if (values.length !== columns.length || !values.every((v) => read(v).length === 1 && !/[a-z]/i.test(v))) return [];
+      return column >= 0 ? read(values[column]) : [];
+    }
     const found = read(lines[i], m.index + m[0].length);
     if (found.length) return found;
     if (opts.nextLine !== false && i + 1 < lines.length) {
@@ -55,9 +64,9 @@ export function amountsFor(lines: string[], label: RegExp, opts: { wholeDollars?
   return [];
 }
 
-export const DATE_PATTERN = String.raw`(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}/\d{2,4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.? \d{1,2},? \d{4})`;
+export const DATE_PATTERN = String.raw`(?:\d{4}-\d{2}-\d{2}|\d{1,2}/\d{1,2}(?:/\d{2,4})?|(?:jan|feb|mar|apr|may|jun|jul|aug|sept?|oct|nov|dec)[a-z]*\.? \d{1,2}(?:,? \d{4})?)`;
 
-/** Parse a date like 10/03/2026, 10/3/26, 2026-10-03 or "Oct 3, 2026" into YYYY-MM-DD. */
+/** Parse a date like 10/03/2026, 10/3/26, 2026-10-03 or "Oct 3, 2026" into YYYY-MM-DD; short dates need defaultYear. */
 export function parseDate(s: string, defaultYear?: number): string | undefined {
   const t = s.trim().toLowerCase();
   let y: number, mo: number, d: number;
@@ -69,10 +78,12 @@ export function parseDate(s: string, defaultYear?: number): string | undefined {
     if (m[3]) y = m[3].length === 2 ? 2000 + +m[3] : +m[3];
     else if (defaultYear) y = defaultYear;
     else return undefined;
-  } else if ((m = /^([a-z]+)\.? (\d{1,2}),? (\d{4})$/.exec(t)) && MONTHS[m[1].slice(0, 3)]) {
+  } else if ((m = /^([a-z]+)\.? (\d{1,2})(?:,? (\d{4}))?$/.exec(t)) && MONTHS[m[1].slice(0, 3)]) {
     mo = MONTHS[m[1].slice(0, 3)];
     d = +m[2];
-    y = +m[3];
+    if (m[3]) y = +m[3];
+    else if (defaultYear) y = defaultYear;
+    else return undefined;
   } else return undefined;
   const date = new Date(Date.UTC(y, mo - 1, d));
   if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d) return undefined; // e.g. Sept 31

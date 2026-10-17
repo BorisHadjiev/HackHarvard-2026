@@ -29,7 +29,7 @@ const files: [string, Uint8Array | Promise<Uint8Array>, string][] = [
   ["maya-pay-stub.pdf", rowsToPdf(payStubRows(d.maya)), "Counts. Net pay matches Maya's bank: documents confirmed by bank, answer YES."],
   ["maya-pay-stub-photo.jpg", rowsToImage(payStubRows(d.maya), { rotate: 0.8, blur: 0.5, jpegQuality: 78 }), "A phone photo of the same stub. Read with on-device OCR."],
   ["maya-pay-stub-signed.pdf", rowsToPdf(payStubRows(d.maya)).then((pdf) => signPdf(pdf, issuer)), "Digitally signed by a trusted test issuer: signed documents."],
-  ["maya-bank-statement.pdf", rowsToPdf(statementRows(d.mayaStatement)), "Balances add up and deposits match the bank."],
+  ["maya-bank-statement.pdf", rowsToPdf(statementRows(d.mayaStatement)), "Past full calendar month. Balances and listed transaction totals add up."],
   [`maya-w2-${year}.pdf`, rowsToPdf(w2Rows(d.mayaW2)), "Payroll tax math checks out."],
   [`maya-1040-${year}.pdf`, rowsToPdf(f1040Rows(d.maya1040)), "AGI math checks out."],
   ["leo-pay-stub.pdf", rowsToPdf(payStubRows(d.leo)), "Genuine. Matches Leo's bank, answer NO."],
