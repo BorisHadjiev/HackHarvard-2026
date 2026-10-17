@@ -26,6 +26,8 @@ export async function checkProof(zk: { proof: string; publicInputs: string[]; at
   if (att.asOfDay > today + 1 || att.asOfDay < dayNumber(request.createdAt) - 1) {
     return { ok: false, code: "stale_attestation", message: "The bank's attestation is not from this request's time window" };
   }
+  // The circuit proves the income rule; an age request has no rent or multiple to bind to.
+  if (request.question.type !== "income_to_rent") return { ok: false, code: "bad_proof", message: "A zero-knowledge income proof doesn't answer this question" };
   const outcome = await verifyIncomeProof({ proof: zk.proof, publicInputs: zk.publicInputs }, {
     commitment: att.commitment,
     today: att.asOfDay,
