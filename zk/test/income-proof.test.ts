@@ -52,3 +52,28 @@ test("the commitment is the circuit's own hash: invented deposits can't match a 
   const p = await pub(leo); // bank signed Leo's real deposits
   await assert.rejects(proveIncome(maya, salt, p)); // proving with richer deposits fails the commitment check
 });
+
+test("public inputs are cryptographically bound, not just compared by the wrapper", { timeout: 300_000 }, async () => {
+  const expected = await pub(maya);
+  const original = await proveIncome(maya, salt, expected);
+  const changes = [
+    { commitment: await commitDeposits(leo, salt) },
+    { today: today + 1 },
+    { rentCents: 250000 },
+    { multipleX100: 400 },
+    { requestTag: requestTag("another-request") },
+  ];
+  for (const [index, change] of changes.entries()) {
+    const nextExpected = { ...expected, ...change };
+    const changedValue = Object.values(change)[0];
+    const replacement = typeof changedValue === "number"
+      ? "0x" + BigInt(changedValue).toString(16).padStart(64, "0")
+      : changedValue;
+    const publicInputs = [...original.publicInputs];
+    publicInputs[index] = replacement;
+    // An attacker changes both the declared input and the expected request. Only the
+    // proving backend, rather than the wrapper's equality checks, can reject this.
+    const verdict = await verifyIncomeProof({ ...original, publicInputs }, nextExpected);
+    assert.equal(verdict.valid, false, `changed ${Object.keys(change)[0]} must invalidate the proof`);
+  }
+});
