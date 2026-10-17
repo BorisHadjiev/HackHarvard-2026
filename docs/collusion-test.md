@@ -33,23 +33,19 @@ baseline is 1/20 = 5%. The verdict allows three standard errors above that rate
 (about 0.47 percentage points for this experiment). Seeds control simulation
 randomness only; key generation and tenant secrets use the existing crypto APIs.
 
-## Timing warning and verdict
+## Timing and verdict
 
-Tenants sign at different minutes within one hour; each tenant answers both
-landlords at its assigned time. Until `sam/round-iat` lands, exact `iat` and derived
-`exp` link every pair. Print their classifications and the actual all-field
-accuracy, then print a separate timing-exempt result. Only `iat` and `exp` are
-exempted from failure for this known issue; any other linking field or accuracy
-above the noise threshold fails the process. A leaked tenant ID is tested to
-produce LINKING and 100% accuracy even when timing fields are excluded.
+`signClaim` rounds `iat` down to the start of the UTC day and sets `exp` from
+that rounded value (`shared/src/claims.ts`). Tenants in this script still sign
+at different minutes within one hour, on the same UTC day, so `iat` and `exp`
+are the same on every claim. They classify as `same for everyone`, the timing
+warning stays quiet, and the all-field accuracy is the number to quote.
 
-Once Sam rounds `iat` to the hour and derives `exp` from it, these fields become
-constant in this cohort and the warning automatically disappears. No signing
-logic is changed or overridden by the demo.
-
-The pitch line includes the measured timing-exempt accuracy and the all-field
-result. Until the timestamp fix lands, do not present the 5% result as the
-security of the complete current payload.
+If a future change makes `iat` or `exp` classify as `LINKING`, the script warns
+and exempts only those two fields from the pass/fail verdict. Any other linking
+field, or accuracy above the noise threshold, fails the process. A leaked tenant
+ID is tested to produce LINKING and 100% accuracy even when timing fields are
+excluded. The script does not replace `signClaim`.
 
 This is an equality-based regression experiment for one synthetic cohort, not a
 proof against every attacker. No claims are made about network metadata, different

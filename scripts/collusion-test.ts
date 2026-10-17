@@ -26,8 +26,8 @@ for (let i = 0; i < tenants; i++) {
   const payloads: Payload[] = [];
   for (const request of requests) {
     const payload = await buildClaimPayload(request, tenant, income, { passed: true, hash: "demo-shared-build" });
-    // Different tenants sign at different minutes within one hour. Each tenant
-    // answers both landlords at its minute, exposing the current exact-time leak.
+    // Different tenants sign at different minutes within one hour. signClaim
+    // rounds iat to the UTC day, so those minutes must not link the claims.
     payloads.push(decodeJwt(await signClaim(payload, privateJwk, now)));
   }
   rows.push({ truth: tenant.id, a: payloads[0], b: payloads[1] });
@@ -60,8 +60,8 @@ const rawAccuracy = scoreMatches(raw.assignments, truthA, truthB);
 console.log(`Matching: ${trials} shuffled one-to-one trials, all ${raw.usedFields.length} nonconstant fields.`);
 console.log(`All-field accuracy: ${pct(rawAccuracy)}; random baseline: 1/${tenants} = ${pct(1 / tenants)}.`);
 if (timing.length) {
-  console.warn(`WARN: ${timing.map((row) => row.field).join(", ")} link tenants by exact signing time. Sam's sam/round-iat must round iat to the hour (and derive exp from it).`);
-  console.warn("WARN: These known timing fields are reported above but exempted from this demo's verdict; current full payloads are timing-linkable.");
+  console.warn(`WARN: ${timing.map((row) => row.field).join(", ")} link tenants by signing time. signClaim should keep iat at UTC midnight and derive exp from it.`);
+  console.warn("WARN: These timing fields are exempted from this demo's verdict; the full payloads are timing-linkable until that rounding holds.");
 }
 const adjusted = matchClaims(a, b, { trials, excludeFields: timing.map((row) => row.field) });
 const accuracy = scoreMatches(adjusted.assignments, truthA, truthB);

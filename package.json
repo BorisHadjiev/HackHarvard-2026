@@ -2,7 +2,7 @@
   "name": "need-to-know",
   "private": true,
   "type": "module",
-  "description": "Prove one fact (income >= 3x rent, age >= 18) without handing over your documents. HackHarvard 2026.",
+  "description": "Prove income >= 3x rent without handing over your documents. HackHarvard 2026.",
   "workspaces": [
     "shared",
     "tenant-app",

@@ -1,6 +1,8 @@
 # Age verification (18+)
 
-A landlord can now ask a second question: **is this tenant at least 18?** The tenant uploads a photo or PDF of a
+**Not built.** This file is the plan. On `main` the only question is income ≥ a multiple of rent (`income_to_rent` in `shared/src/types.ts`). The checklist in section 6 is still open.
+
+The intended flow: a landlord asks a second question, **is this tenant at least 18?** The tenant uploads a photo or PDF of a
 government ID, the tenant app reads the date of birth on the tenant's own machine, and the landlord gets a signed
 yes or no. The date of birth, name, address and ID number never leave the laptop and never appear in the claim.
 
