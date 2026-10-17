@@ -18,6 +18,8 @@ export default function Home() {
   const [copyError, setCopyError] = useState<string | null>(null);
   const [delivery, setDelivery] = useState<"sent" | "logged" | null>(null);
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -101,7 +103,6 @@ export default function Home() {
     }
   }
 
-  const preview = questionLine(Number(multiple), Number(rent));
   const deliveryNote = !share
     ? null
     : delivery === "sent"
@@ -110,81 +111,53 @@ export default function Home() {
         ? "Photon is not configured, so this link was only logged. Share it yourself."
         : "No phone number on this request. Share the link.";
 
+  const pending = requests.filter((r) => r.status === "pending" && Date.parse(r.expiresAt) > Date.now()).length;
+  const verified = requests.filter((r) => r.status === "verified").length;
+  const visible = requests.filter((r) => {
+    const status = r.status === "pending" && Date.parse(r.expiresAt) <= Date.now() ? "expired" : r.status;
+    return (filter === "all" || status === filter) && (r.id + " " + r.requesterName + " " + r.question.rent).toLowerCase().includes(search.toLowerCase());
+  });
+
   return (
-    <main>
-      <h1>Ask one question</h1>
-      <p className="sub">
-        A tenant proves this on their own device. You get a signed yes or no — never their balances, deposits, or documents.{" "}
-        <a href="/unlinkability">Two landlords still can&apos;t tell it was the same person.</a>
-      </p>
-
-      <form className="card" onSubmit={create}>
-        <p className="kicker">The question</p>
-        <p className="question-line">{preview}</p>
-        <p className="hint gap">This is the only fact the tenant is asked to prove.</p>
-
-        <label>
-          Monthly rent ($)
-          <input value={rent} onChange={(e) => setRent(e.target.value)} inputMode="decimal" aria-label="Monthly rent in dollars" />
-        </label>
-        <label>
-          Required income multiple
-          <input value={multiple} onChange={(e) => setMultiple(e.target.value)} inputMode="decimal" aria-label="Required income multiple" />
-          <span className="hint">3 means income must be at least three times the rent.</span>
-        </label>
-        <label>
-          Tenant phone (optional)
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 617 555 0123" inputMode="tel" autoComplete="tel" />
-          <span className="hint">Optional. If Photon is configured, we text this number. You also get a link to open or copy.</span>
-        </label>
-        {formError && <p className="banner bad" role="alert">{formError}</p>}
-        <button disabled={busy}>{busy ? "Creating…" : "Send verification request"}</button>
-      </form>
-
-      {share && (
-        <section className="card current" aria-labelledby="share-title">
-          <p className="kicker">Tenant link</p>
-          <h2 id="share-title">Open the consent screen, or copy this link</h2>
-          {deliveryNote && <p className="hint gap-sm">{deliveryNote}</p>}
-          <p className="hint gap-sm">The tenant reviews the question and chooses approve or decline. Nothing financial is sent until they approve.</p>
-          <div className="actions">
-            <a className="button" href={share.link} target="_blank" rel="noreferrer">Open tenant consent</a>
-            <button type="button" className="secondary" onClick={copyLink}>{copied ? "Copied" : "Copy link"}</button>
+    <div className="workspace">
+      <aside className="sidebar">
+        <p className="kicker">Your workspace</p>
+        <h2>Landlord portal</h2>
+        <nav aria-label="Workspace"><a className="nav-active" href="/">Verification requests <span>↗</span></a><a href="/unlinkability">How privacy works <span>↗</span></a></nav>
+        <div className="sidebar-note"><span className="seal small" aria-hidden="true">✓</span><h3>Just what you need.</h3><p>One eligibility answer. No statements, balances, or private income amounts.</p></div>
+        <p className="sidebar-footer">Need-to-Know<br/>Built for privacy. Designed for people.</p>
+      </aside>
+      <main className="dashboard">
+        <header className="page-head"><div><p className="kicker">Your rental workspace</p><h1>Verification requests</h1><p className="sub">A little certainty. A lot less paperwork.</p></div><a className="button" href="#new-request">＋ New request</a></header>
+        <section className="stats" aria-label="Request summary"><div><span>Awaiting tenant</span><strong>{pending}</strong><small>Private links open</small></div><div><span>Verified results</span><strong>{verified}</strong><small>Signed yes / no answers</small></div><div><span>Total requests</span><strong>{requests.length}</strong><small>Every result scoped to a request</small></div></section>
+        <div className="privacy-strip"><span aria-hidden="true">✓</span><b>Privacy comes standard</b><span>No bank documents. No income amounts. Just the answer.</span></div>
+        <div className="dashboard-grid">
+          <section className="card request-list" aria-labelledby="requests-heading">
+            <div className="section-head"><h2 id="requests-heading">All requests <span className="count">{requests.length}</span></h2><span className="live-dot">Updates live</span></div>
+            <label className="search-label"><span className="sr-only">Search requests</span><input placeholder="Search by request ID or rent…" value={search} onChange={(e) => setSearch(e.target.value)} /></label>
+            <div className="filters" aria-label="Filter requests">{[["all", "All"], ["pending", "Awaiting tenant"], ["verified", "Verified"], ["rejected", "Declined"], ["expired", "Expired"]].map(([value, label]) => <button type="button" className={filter === value ? "filter active" : "filter"} aria-pressed={filter === value} onClick={() => setFilter(value)} key={value}>{label}</button>)}</div>
+            {!loaded && <p className="empty">Loading requests…</p>}
+            {loadError && <p className="banner bad" role="alert">{loadError}</p>}
+            {loaded && !loadError && visible.length === 0 && <div className="empty-state"><span className="seal small" aria-hidden="true">✓</span><h3>{requests.length ? "No matching requests" : "Your first answer starts here"}</h3><p>{requests.length ? "Try another filter or search." : "Create a request. The tenant chooses what to share."}</p></div>}
+            <div aria-live="polite">{visible.map((r) => <article className="request-row" key={r.id}><div className="request-mark" aria-hidden="true">↗</div><div className="request-info"><h3>Income eligibility check</h3><p className="meta">Rent ${r.question.rent.toLocaleString("en-US")} / month · {r.question.multiple}× requirement</p><p className="mono">{r.id}</p><details><summary>Request details</summary><p className="meta">{questionLine(r.question.multiple, r.question.rent)}</p><p className="meta">Sent {formatWhen(r.createdAt)} · Expires {formatWhen(r.expiresAt)}</p>{r.result && <p className="meta">Verified {formatWhen(r.result.verifiedAt)}. No private financial evidence received.</p>}{links[r.id] && r.status === "pending" && <a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant consent ↗</a>}</details></div><Status r={r} /></article>)}</div>
+            <p className="list-foot">Your rent requirement is public. The tenant’s financial evidence stays private.</p>
+          </section>
+          <div>
+            <form id="new-request" className="card form-card" onSubmit={create}>
+              <p className="kicker">A simple, private check</p><h2>New verification request</h2><p className="hint gap">Ask whether income meets your rent requirement.</p>
+              <label>Monthly rent ($)<input type="number" min="1" step="1" required value={rent} onChange={(e) => setRent(e.target.value)} aria-label="Monthly rent in dollars" /></label>
+              <label>Required income multiple<input type="number" min="0.1" step="any" required value={multiple} onChange={(e) => setMultiple(e.target.value)} aria-label="Required income multiple" /></label>
+              <div className="threshold"><span>Requirement · set by you</span><strong>${Number.isFinite(Number(rent) * Number(multiple)) ? (Number(rent) * Number(multiple)).toLocaleString("en-US") : "—"}<small> / month</small></strong><p>Calculated from rent. This is not the tenant’s income.</p></div>
+              <label>Tenant phone <span className="optional">optional</span><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 617 555 0123" inputMode="tel" autoComplete="tel" /><span className="hint">Send a text when messaging is connected, or share the link yourself.</span></label>
+              {formError && <p className="banner bad" role="alert">{formError}</p>}
+              <button className="full" disabled={busy}>{busy ? "Creating…" : "Send verification request →"}</button><p className="hint form-note">The tenant reviews and approves before anything is shared.</p>
+            </form>
+            {share && <section className="card current" aria-labelledby="share-title"><p className="kicker">Request ready</p><h2 id="share-title">Let the tenant take it from here.</h2><p className="hint gap-sm">{deliveryNote}</p><div className="actions"><a className="button" href={share.link} target="_blank" rel="noreferrer">Open tenant consent ↗</a><button type="button" className="secondary" onClick={copyLink}>{copied ? "Copied ✓" : "Copy link"}</button></div>{copyError && <p className="banner bad" role="alert">{copyError}</p>}<label className="field-last">Tenant link<input readOnly value={share.link} onFocus={(e) => e.currentTarget.select()} /></label></section>}
           </div>
-          {copyError && <p className="banner bad" role="alert">{copyError}</p>}
-          <label className="field-last">
-            Tenant link
-            <input readOnly value={share.link} aria-label="Tenant link" onFocus={(e) => e.currentTarget.select()} />
-          </label>
-        </section>
-      )}
-
-      <div className="section-head">
-        <h2>Requests</h2>
-      </div>
-      {!loaded && <p className="empty">Loading requests…</p>}
-      {loadError && <p className="banner bad" role="alert">{loadError}</p>}
-      {loaded && !loadError && requests.length === 0 && (
-        <p className="empty">No requests yet. Send one above, then open the tenant link.</p>
-      )}
-      <div aria-live="polite">
-        {requests.map((r) => (
-          <article className={r.id === share?.id ? "card row current" : "card row"} key={r.id}>
-            <div>
-              <h3 className="question-line">{questionLine(r.question.multiple, r.question.rent)}</h3>
-              <p className="meta">
-                Sent {formatWhen(r.createdAt)}
-                {r.status === "rejected" ? " · Declined" : r.result?.verifiedAt ? ` · Answered ${formatWhen(r.result.verifiedAt)}` : ` · Expires ${formatWhen(r.expiresAt)}`}
-              </p>
-              {links[r.id] && r.status === "pending" && (
-                <p className="meta"><a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant link</a></p>
-              )}
-            </div>
-            <Status r={r} />
-          </article>
-        ))}
-      </div>
-    </main>
+        </div>
+        <footer className="page-footer">Need-to-Know · A signed answer, without the paperwork.</footer>
+      </main>
+    </div>
   );
 }
 
@@ -201,6 +174,7 @@ function formatWhen(iso: string) {
 }
 
 function Status({ r }: { r: VerificationRequest }) {
+  if (r.status === "pending" && Date.parse(r.expiresAt) <= Date.now()) return <p className="verdict wait" role="status">Expired</p>;
   if (r.status === "rejected") {
     return (
       <div role="status">

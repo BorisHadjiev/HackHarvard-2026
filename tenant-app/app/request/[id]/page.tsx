@@ -53,10 +53,10 @@ export default async function RequestPage({
   const recordedAnswer = body.result?.answer === true ? true : body.result?.answer === false ? false : null;
 
   return (
-    <main>
+    <main className="tenant-page">
       <p className="kicker">{request.requesterName}</p>
-      <h1>Review this question</h1>
-      <p className="sub">Need-to-Know answers it on this device. Your bank data stays here until you approve — and even then, only a yes or no is sent.</p>
+      <h1>A little certainty.<br />Your privacy, intact.</h1>
+      <p className="sub">Review the request below. You decide whether to share an eligibility answer. Your bank data stays on this device.</p>
       <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} />
     </main>
   );
