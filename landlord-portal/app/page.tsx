@@ -16,6 +16,7 @@ export default function Home() {
   const [links, setLinks] = useState<Record<string, string>>({});
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState<"sent" | "logged" | null>(null);
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -78,6 +79,7 @@ export default function Home() {
         return;
       }
       setShare({ id: data.request.id, link: data.link });
+      setDelivery(data.delivery === "sent" ? "sent" : "logged");
       setLinks((prev) => ({ ...prev, [data.request.id]: data.link }));
       refresh();
     } catch {
@@ -100,12 +102,20 @@ export default function Home() {
   }
 
   const preview = questionLine(Number(multiple), Number(rent));
+  const deliveryNote = !share
+    ? null
+    : delivery === "sent"
+      ? "Text sent to the tenant."
+      : phone.trim()
+        ? "Photon is not configured, so this link was only logged. Share it yourself."
+        : "No phone number on this request. Share the link.";
 
   return (
     <main>
       <h1>Ask one question</h1>
       <p className="sub">
-        A tenant proves this on their own device. You get a signed yes or no — never their balances, deposits, or documents.
+        A tenant proves this on their own device. You get a signed yes or no — never their balances, deposits, or documents.{" "}
+        <a href="/unlinkability">Two landlords still can&apos;t tell it was the same person.</a>
       </p>
 
       <form className="card" onSubmit={create}>
@@ -125,7 +135,7 @@ export default function Home() {
         <label>
           Tenant phone (optional)
           <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 617 555 0123" inputMode="tel" autoComplete="tel" />
-          <span className="hint">Texts are not sent in this demo. You will get a link to open or copy.</span>
+          <span className="hint">Optional. If Photon is configured, we text this number. You also get a link to open or copy.</span>
         </label>
         {formError && <p className="banner bad" role="alert">{formError}</p>}
         <button disabled={busy}>{busy ? "Creating…" : "Send verification request"}</button>
@@ -135,7 +145,8 @@ export default function Home() {
         <section className="card current" aria-labelledby="share-title">
           <p className="kicker">Tenant link</p>
           <h2 id="share-title">Open the consent screen, or copy this link</h2>
-          <p className="hint gap-sm">The tenant reviews the question and chooses approve or decline. Nothing is sent until they approve.</p>
+          {deliveryNote && <p className="hint gap-sm">{deliveryNote}</p>}
+          <p className="hint gap-sm">The tenant reviews the question and chooses approve or decline. Nothing financial is sent until they approve.</p>
           <div className="actions">
             <a className="button" href={share.link} target="_blank" rel="noreferrer">Open tenant consent</a>
             <button type="button" className="secondary" onClick={copyLink}>{copied ? "Copied" : "Copy link"}</button>

@@ -1,7 +1,8 @@
 // Sends the request to the tenant. Owner: Boris.
-// TODO(Boris): replace the console log with a Photon 2.0 text message
-// (see messaging/README.md). Keep this function's signature so the API route doesn't change.
+// Signature stays put so the API route doesn't change. Photon lives in @ntk/messaging;
+// without PHOTON_API_KEY / PHOTON_PROJECT_ID / PHOTON_SENDER_ID this logs and returns "logged".
+import { deliverTenantLink } from "@ntk/messaging";
+
 export async function notifyTenant(phone: string | undefined, link: string, summary: string): Promise<"sent" | "logged"> {
-  console.log(`[notify] would text ${phone ?? "(no phone)"}: ${summary} -> ${link}`);
-  return "logged";
+  return deliverTenantLink(phone, link, summary);
 }

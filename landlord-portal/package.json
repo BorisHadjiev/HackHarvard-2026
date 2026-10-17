@@ -9,6 +9,7 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@ntk/messaging": "*",
     "@ntk/shared": "*",
     "next": "^16.4.2",
     "react": "^19.3.1",
