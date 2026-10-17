@@ -5,16 +5,16 @@ import type { VerificationRequest } from "@ntk/shared";
 
 type Reply = { ok: boolean; answer?: boolean; code?: string; message?: string; local?: { dataSource: string; medianMonthlyIncome: number } };
 
-export default function Consent({ request, portal, tenants }: { request: VerificationRequest; portal: string; tenants: Record<string, string> }) {
+export default function Consent({ request, portal, tenants, recordedAnswer = null }: { request: VerificationRequest; portal: string; tenants: Record<string, string>; recordedAnswer?: boolean | null }) {
   const [tenant, setTenant] = useState(Object.keys(tenants)[0] ?? "");
   const [busy, setBusy] = useState(false);
   const [declined, setDeclined] = useState(false);
   const [reply, setReply] = useState<Reply | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
   const q = request.question;
-  const expired = Date.parse(request.expiresAt) < Date.now();
-  const alreadyAnswered = request.status === "verified";
-  const closed = expired || alreadyAnswered || declined || reply?.ok === true;
+  const expired = recordedAnswer == null && request.status !== "verified" && Date.parse(request.expiresAt) < Date.now();
+  const alreadyAnswered = recordedAnswer == null && request.status === "verified";
+  const closed = expired || alreadyAnswered || recordedAnswer != null || declined || reply?.ok === true;
 
   async function approve() {
     setBusy(true);
@@ -63,6 +63,13 @@ export default function Consent({ request, portal, tenants }: { request: Verific
 
       {expired && <p className="banner bad" role="status">This request expired. Ask {request.requesterName} for a new link. Nothing will be sent.</p>}
       {alreadyAnswered && <p className="banner wait" role="status">This question was already answered. A second answer will not be sent.</p>}
+      {recordedAnswer != null && (
+        <section className="card" role="status">
+          <p className="kicker">Already sent</p>
+          <p className={recordedAnswer ? "verdict ok" : "verdict bad"}>{recordedAnswer ? "Yes — meets the requirement" : "No — does not meet the requirement"}</p>
+          <p className="hint">{request.requesterName} already has this answer. Nothing new is sent, and no dollar amount is on this page.</p>
+        </section>
+      )}
 
       {!closed && (
         <section className="card">

@@ -47,14 +47,17 @@ export default async function RequestPage({
       </main>
     );
   }
-  const { request } = (await res.json()) as { request: VerificationRequest };
+  const body = (await res.json()) as { request: VerificationRequest; result?: { answer?: boolean } | null };
+  const request = body.request;
+  // The public payload's result is only a yes/no. Dollar amounts are not on this response.
+  const recordedAnswer = body.result?.answer === true ? true : body.result?.answer === false ? false : null;
 
   return (
     <main>
       <p className="kicker">{request.requesterName}</p>
       <h1>Review this question</h1>
       <p className="sub">Need-to-Know answers it on this device. Your bank data stays here until you approve — and even then, only a yes or no is sent.</p>
-      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} />
+      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} recordedAnswer={recordedAnswer} />
     </main>
   );
 }
