@@ -1,5 +1,7 @@
 # Need-to-Know
 
+[![CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml/badge.svg)](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) Every push and PR runs unit tests, builds both apps and runs the end-to-end smoke test (plus the collusion test once it exists). Don't merge a red PR.
+
 **Prove one fact about yourself (income ≥ 3× rent, age ≥ 18) without handing over a single document.**
 HackHarvard 2026 · Digital Trust track · Capital One Nessie + Photon challenges.
 
