@@ -74,7 +74,7 @@ npm run doc-accuracy
 
 Smoke covers income yes/no, forged tokens, replay protection, an adult specimen through the full age flow, and replay of its exact signed claim. It skips age cleanly in checkouts without the ID reader. For alternate ports, set `PORTAL` and `TENANT` when invoking smoke.
 
-Document accuracy generates a labeled synthetic income corpus and reports age outcomes separately for the seven specimens. A correct outcome is yes, no or decline as appropriate. Synthetic layouts do not establish accuracy on arbitrary real-world statements or IDs, nor do they demonstrate fraud resistance. `npm run doc-accuracy -- --people 30` expands the income corpus.
+Document accuracy generates a labeled synthetic income corpus and reports age outcomes separately for the seven specimens. A correct outcome is yes, no or decline as appropriate. CI compares income metrics with `main` on the same runner to account for platform-dependent OCR fonts, and requires every age outcome to match. Synthetic layouts do not establish accuracy on arbitrary real-world statements or IDs, nor do they demonstrate fraud resistance. `npm run doc-accuracy -- --people 30` expands the income corpus.
 
 ## Repository
 
