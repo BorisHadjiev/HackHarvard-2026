@@ -12,6 +12,8 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@photon-ai/api": "^0.5.0"
+    "@photon-ai/api": "^0.5.0",
+    "@spectrum-ts/core": "^12.11.0",
+    "@spectrum-ts/imessage": "^12.11.0"
   }
 }

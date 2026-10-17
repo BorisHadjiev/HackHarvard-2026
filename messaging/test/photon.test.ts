@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { deliverTenantLink, normalizePhone, readPhotonConfig, sendText, tenantText } from "../src/index";
+import { deliverTenantLink, normalizePhone, readPhotonConfig, sendText, tenantText, usesBetaPhotonApi } from "../src/index";
 import type { PhotonConfig, PhotonMessagingClient, PhotonPlatform } from "../src/index";
 
 const config: PhotonConfig = {
@@ -50,6 +50,17 @@ test("readPhotonConfig is null until the three keys are set", () => {
     PHOTON_SENDER_ID: " u ",
   });
   assert.deepEqual(cfg, { apiKey: "k", projectId: "p", senderId: "u", platform: "sms" });
+});
+
+test("Spectrum project ids stay off the beta Photon API", () => {
+  assert.equal(
+    usesBetaPhotonApi({ apiKey: "spectrum-secret", projectId: "41472c41-3296-4ef4-8ad0-e7e1862c4ef0", senderId: "sender", platform: "imessage" }),
+    false,
+  );
+  assert.equal(
+    usesBetaPhotonApi({ apiKey: "pho_sk_test", projectId: "pho_prj_test", senderId: "pho_usr_agent", platform: "imessage" }),
+    true,
+  );
 });
 
 test("readPhotonConfig rejects an unknown platform", () => {

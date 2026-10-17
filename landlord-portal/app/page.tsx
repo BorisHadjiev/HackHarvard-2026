@@ -176,7 +176,7 @@ export default function Home() {
                 Sent {formatWhen(r.createdAt)}
                 {r.status === "rejected" ? " · Declined" : r.result?.verifiedAt ? ` · Answered ${formatWhen(r.result.verifiedAt)}` : ` · Expires ${formatWhen(r.expiresAt)}`}
               </p>
-              {links[r.id] && r.status !== "verified" && (
+              {links[r.id] && r.status === "pending" && (
                 <p className="meta"><a href={links[r.id]} target="_blank" rel="noreferrer">Open tenant link</a></p>
               )}
             </div>
