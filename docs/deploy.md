@@ -44,7 +44,14 @@ Copy only the public JWK. `TENANT_APP_PRIVATE_JWK` stays in `tenant-app/.env.loc
 | `PORTAL_REQUESTER_NAME` | Local `landlord-portal/.env.local`, or leave unset for the default name |
 | `TENANT_APP_URL` | `http://localhost:3001` while the tenant app is on the laptop |
 | `PUBLIC_PORTAL_URL` | `https://<service>.onrender.com` |
-| `TRUSTED_BUILD_HASHES` | Local `landlord-portal/.env.local` if you turned the tamper check on |
+| `TRUSTED_BUILD_HASHES` | Local `landlord-portal/.env.local` if you turned the tamper check on. Leave unset unless the demo laptop ran `npm run sign-manifest` against this exact code, or every answer is rejected as `untrusted_build` |
+| `PHOTON_API_KEY`, `PHOTON_PROJECT_ID`, `PHOTON_SENDER_ID`, `PHOTON_PLATFORM` | Photon dashboard. Optional: without them the portal logs the tenant link instead of texting |
+| `PHOTON_INBOUND_SECRET` | Any long random string, also set on the Photon webhook as the `x-ntk-inbound-secret` header. Without it, anyone who can reach `/api/photon/inbound` can post a YES |
+| `PORTAL_ORIGIN` | `https://<service>.onrender.com`. Used when a tenant replies YES by text |
+
+**The public key must match the demo laptop.** `TENANT_APP_PUBLIC_JWK` on Render has to be the public half of the `TENANT_APP_PRIVATE_JWK` on whichever laptop runs the tenant app. If a different laptop's key is on Render, every answer fails with `bad_signature`. Check with the smoke test below.
+
+**Texted YES/NO only works with the portal on the laptop.** A YES reply makes the portal call `TENANT_APP_URL/api/approve`, which is `localhost:3001` and unreachable from Render. On Render, texts deliver the link; the tenant approves in the browser.
 
 `POST /api/requests` puts `PUBLIC_PORTAL_URL` in the tenant link when it is set. Otherwise it uses `x-forwarded-proto` and `x-forwarded-host`, then the request URL.
 

@@ -22,3 +22,17 @@ services:
         sync: false
       - key: TRUSTED_BUILD_HASHES
         sync: false
+      # Texting (optional). Without PHOTON_* the portal logs the tenant link instead of texting it.
+      - key: PHOTON_API_KEY
+        sync: false
+      - key: PHOTON_PROJECT_ID
+        sync: false
+      - key: PHOTON_SENDER_ID
+        sync: false
+      - key: PHOTON_PLATFORM
+        sync: false
+      - key: PHOTON_INBOUND_SECRET
+        sync: false
+      # Where a texted YES tells the tenant app to send the claim. Set to this service's public URL.
+      - key: PORTAL_ORIGIN
+        sync: false
