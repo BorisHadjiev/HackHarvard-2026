@@ -63,6 +63,8 @@ What this stops: a tenant who edits the app to always say yes, invents deposits,
 
 When `TRUSTED_BANK_KEYS` is set, the portal rejects any bank-backed answer that arrives without a proof. `npm run keys` sets it up locally. Circuit changes: edit `main.nr`, then `npm run compile:zk`.
 
+Run `npm run smoke:zk` against the three local services to check missing/tampered proofs, bank signatures, request binding, result consistency and replay rejection. See [docs/zero-knowledge.md](docs/zero-knowledge.md) for setup, public inputs, limits and deployment requirements.
+
 ## Age check (18+)
 
 A landlord can also ask "are you at least 18?". The tenant uploads a photo or PDF of a government ID and the tenant app reads the date of birth on the tenant's own machine:
