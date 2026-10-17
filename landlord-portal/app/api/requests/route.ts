@@ -4,6 +4,7 @@ import type { VerificationRequest } from "@ntk/shared";
 import { store } from "@/lib/store";
 import { portalConfig } from "@/lib/config";
 import { notifyTenant } from "@/lib/notify";
+import { rememberTenantPhone } from "@ntk/messaging";
 
 const REQUEST_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -33,6 +34,13 @@ export async function POST(req: Request) {
   const portalUrl = new URL(req.url).origin;
   const link = `${cfg.tenantAppUrl}/request/${request.id}?portal=${encodeURIComponent(portalUrl)}`;
   const summary = `${request.requesterName} asks: is your income at least ${multiple}x $${request.question.rent.toLocaleString("en-US")} rent?`;
+  if (typeof body.tenantPhone === "string" && body.tenantPhone.trim()) {
+    try {
+      rememberTenantPhone(body.tenantPhone, request.id);
+    } catch {
+      // An unusable phone still leaves the link on screen.
+    }
+  }
   const delivery = await notifyTenant(body.tenantPhone, link, summary);
 
   return NextResponse.json({ request, link, delivery }, { status: 201 });

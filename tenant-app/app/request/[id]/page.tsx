@@ -19,15 +19,28 @@ export default async function RequestPage({
 
   const res = await fetch(`${portalUrl}/api/requests/${encodeURIComponent(id)}`, { cache: "no-store" });
   if (!res.ok) {
-    return <main><h1>Request not found</h1><p className="sub">Ask the landlord to send a new link.</p></main>;
+    return (
+      <main>
+        <header className="top">
+          <span className="mark">Need-to-Know</span>
+          <span className="role">Tenant</span>
+        </header>
+        <h1>This link doesn&apos;t match a request.</h1>
+        <p className="sub">Ask the landlord to send a new one. Nothing was read from a bank account.</p>
+      </main>
+    );
   }
-  const { request } = (await res.json()) as { request: VerificationRequest };
+  const { request, result } = (await res.json()) as { request: VerificationRequest; result: { answer: boolean } | null };
 
   return (
     <main>
+      <header className="top">
+        <span className="mark">Need-to-Know</span>
+        <span className="role">Tenant</span>
+      </header>
       <h1>{request.requesterName} has a question</h1>
-      <p className="sub">Need-to-Know answers it on this device. Your bank data stays here.</p>
-      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} />
+      <p className="sub">Answered on this device. Your bank data stays here.</p>
+      <Consent request={request} portal={portalUrl} tenants={DEMO_TENANTS} verdict={result} />
     </main>
   );
 }

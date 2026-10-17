@@ -19,7 +19,7 @@ A landlord asks one question. The tenant's own computer pulls their bank deposit
 - ✅ Landlord portal verifies the signature and shows ✓ / ✗
 - ✅ Answering the same request twice is rejected (replay)
 - ✅ Leo's one-time $6,000 transfer doesn't fool the income check
-- ⏳ Real Nessie data (Angelo) · ⏳ real tamper check (Sam) · ⏳ Photon texts + design (Boris)
+- ⏳ Real Nessie data (Angelo) · ⏳ real tamper check (Sam) · ✅ Photon texts, console fallback, and both screens (Boris)
 
 Every placeholder in the code is marked `TODO(Angelo)`, `TODO(Sam)` or `TODO(Boris)`. Search for your name.
 
@@ -42,7 +42,17 @@ Then, in a second terminal: `npm run smoke` (should print 6 PASS lines). Or by h
 2. Open the **Tenant link** it shows, pick a demo bank account, click **Approve**.
 3. Back on :3000 the request flips to ✓ or ✗ within 2 seconds.
 
-`npm test` runs the unit tests (signing + income logic).
+`npm test` runs the unit tests (signing, income logic, and the Photon client).
+
+## Where Photon is used
+
+Judges check that the project is built on Photon 2.0 and lives on a Photon channel. The text to the tenant is that channel.
+
+- **Client:** `messaging/` (`@ntk/messaging`) uses the Photon 2.0 TypeScript SDK (`@photon-ai/api`) against `https://api.photon.codes/v1`. `sendText` creates or reuses the tenant user, opens a space with the agent, and sends one plain-text message.
+- **Call site:** `notifyTenant()` in `landlord-portal/lib/notify.ts`, called from `POST /api/requests` when the landlord enters a phone number. The text is the question summary plus the tenant link.
+- **Channel:** `PHOTON_PLATFORM` in `landlord-portal/.env.local` (default `sms`). Also set `PHOTON_API_KEY`, `PHOTON_PROJECT_ID`, and `PHOTON_SENDER_ID` (the agent user id). Never commit that file.
+- **Fallback:** if those three keys are missing, or Photon returns an error, the portal logs the link and still shows it on screen. `delivery` in the create response is `"sent"` or `"logged"`.
+- **Reply YES:** `POST /api/photon/inbound` accepts a Photon `message.received` event. A plain-text `YES` from the phone on the latest request approves it through the tenant app (demo account `PHOTON_YES_TENANT`, default `maya`). The phone number is remembered only in memory for that reply. It is not stored on the request or inside the signed claim. Set `PHOTON_INBOUND_SECRET` and send it as `x-ntk-inbound-secret` before exposing the portal. The portal's reply drops the tenant-only income figure.
 
 ---
 
