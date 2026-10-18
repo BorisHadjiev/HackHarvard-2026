@@ -4,7 +4,7 @@
 
 Janus answers a narrow question—“Is income at least 3× rent?” or “Are you at least 18?”—without sending bank statements or ID images to the requester. Built for HackHarvard 2026 with Capital One Nessie and Photon messaging.
 
-[CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) · [Demo portal](https://janus-hackharvard.onrender.com/) · [Threat model](docs/threat-model.md) · [Measured document accuracy](docs/document-accuracy.md)
+[CI](https://github.com/BorisHadjiev/Janus-HackHarvard-2026/actions/workflows/ci.yml) · [Demo portal](https://janus-hackharvard.onrender.com/) · [Threat model](docs/threat-model.md) · [Measured document accuracy](docs/document-accuracy.md)
 
 ![Janus: Proof, not paperwork](docs/assets/janus-devpost.png)
 
@@ -45,8 +45,8 @@ Open **[janus-hackharvard.onrender.com](https://janus-hackharvard.onrender.com/)
 Use Node.js 20+ and npm.
 
 ```bash
-git clone https://github.com/BorisHadjiev/HackHarvard-2026.git
-cd HackHarvard-2026
+git clone https://github.com/BorisHadjiev/Janus-HackHarvard-2026.git
+cd Janus-HackHarvard-2026
 npm run setup
 npm run dev
 ```
