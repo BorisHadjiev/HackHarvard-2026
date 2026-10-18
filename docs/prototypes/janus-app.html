@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>Requests · Need-to-Know</title>
+<title>Requests · Janus</title>
 <style>
 :root{
   --bg: oklch(98% 0.004 240);
@@ -712,7 +712,7 @@ ul,ol{padding:0;list-style:none}
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2.5"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>
     </div>
     <h2 id="privacyTitle">A narrow question, answered privately.</h2>
-    <p>Need-to-Know verifies one thing: whether a tenant’s income meets a rent requirement. Here is exactly where the line sits.</p>
+    <p>Janus verifies one thing: whether a tenant’s income meets a rent requirement. Here is exactly where the line sits.</p>
     <div class="privacy-section">
       <span class="num">1</span>
       <div>
@@ -978,7 +978,7 @@ function summaryText(r) {
   if (!r || !r.result) return '';
   const outcome = r.result.outcome === 'meets' ? 'Meets the 3× rent requirement' : 'Does not meet the 3× rent requirement';
   return [
-    'Need-to-Know · shared eligibility result',
+    'Janus · shared eligibility result',
     'Request: ' + r.ref,
     'Applicant: ' + r.applicant + ' · ' + r.unit,
     'Rent: ' + money(r.rent) + '/month',
@@ -1010,9 +1010,9 @@ function sidebar(activeRole, reqs, tenantReq) {
   );
   return '<aside class="sidebar" data-od-id="app-sidebar">' +
     '<div class="sidebar-top">' +
-      '<a class="brand" href="#/requests" aria-label="Need-to-Know home">' +
+      '<a class="brand" href="#/requests" aria-label="Janus home">' +
         '<span class="brand-mark">' + icon('shield') + '</span>' +
-        '<span class="brand-text">Need-to-Know<small>Private rent checks</small></span>' +
+        '<span class="brand-text">Janus<small>Private rent checks</small></span>' +
       '</a>' +
       '<div class="mobile-tools">' +
         '<button class="icon-btn" data-action="open-privacy" aria-label="Privacy and demo notes">' + icon('shield') + '</button>' +
@@ -1147,7 +1147,7 @@ function dashboardView(reqs) {
       '<div id="requestRows">' + (rows.length ? rows.map(rowHTML).join('') : emptyRowsHTML(reqs.length)) + '</div>' +
       '<div class="panel-foot">' + icon('lock') + '<span>Thresholds are calculated from rent you set. Tenant income amounts are never displayed, stored, or requested here.</span></div>' +
     '</section>' +
-    '<footer class="app-foot"><span>Need-to-Know · HackHarvard 2026 demo</span><span>Prototype only — synthetic data, no bank connections. Demo links; checks and signatures simulated.</span></footer>';
+    '<footer class="app-foot"><span>Janus · HackHarvard 2026 demo</span><span>Prototype only — synthetic data, no bank connections. Demo links; checks and signatures simulated.</span></footer>';
 }
 
 function emptyRowsHTML(total) {
@@ -1325,7 +1325,7 @@ function detailView(req) {
         (req.status === 'pending' ? '<section class="card" data-od-id="request-link"><h3>Private link</h3><p class="card-sub">Scoped to this request. No tenant account or global identifier.</p><div class="link-field"><code>#/tenant/' + req.id + '</code><button class="icon-btn" data-action="copy-link" data-id="' + req.id + '" aria-label="Copy private link">' + icon('copy') + '</button></div><p class="note">Demo link only — no email is sent. ' + esc(daysLeft(req.expiresAt)) + '.</p></section>' : '') +
       '</aside>' +
     '</div>' +
-    '<footer class="app-foot"><span>Need-to-Know · HackHarvard 2026 demo</span><span>Prototype only — synthetic data, no bank connections. Demo links; checks and signatures simulated.</span></footer>';
+    '<footer class="app-foot"><span>Janus · HackHarvard 2026 demo</span><span>Prototype only — synthetic data, no bank connections. Demo links; checks and signatures simulated.</span></footer>';
 }
 
 function localCard(req) {
@@ -1459,7 +1459,7 @@ function tenantView(req) {
       '<div class="landlord-lockup"><span class="avatar" aria-hidden="true">JH</span><div><strong>Juniper House</strong><span>' + esc(req.unit) + ' · ' + money(req.rent) + '/mo</span></div></div>' +
     '</header>' +
     (pending ? tenantPending(req) : tenantOutcome(req)) +
-    '<footer class="app-foot"><span>Need-to-Know · private tenant link</span><span>Synthetic demo data · demo link · simulated checks and signatures</span></footer>';
+    '<footer class="app-foot"><span>Janus · private tenant link</span><span>Synthetic demo data · demo link · simulated checks and signatures</span></footer>';
 }
 
 function resolveTenant(reqs, routeId) {
@@ -1484,14 +1484,14 @@ function render() {
   const tenantReq = r.view === 'tenant' ? resolveTenant(reqs, r.id) : null;
   const activeRole = r.view === 'tenant' ? 'tenant' : 'landlord';
   let content;
-  let title = 'Requests · Need-to-Know';
+  let title = 'Requests · Janus';
   if (r.view === 'detail') {
     const req = reqs.find((x) => x.id === r.id);
     content = detailView(req);
-    title = (req ? req.applicant + ' · ' : '') + 'Need-to-Know';
+    title = (req ? req.applicant + ' · ' : '') + 'Janus';
   } else if (r.view === 'tenant') {
     content = tenantView(tenantReq);
-    title = 'Your private request · Need-to-Know';
+    title = 'Your private request · Janus';
   } else {
     content = dashboardView(reqs);
   }

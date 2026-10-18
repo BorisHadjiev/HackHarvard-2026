@@ -130,7 +130,7 @@ export default function Home() {
         <h2>Landlord portal</h2>
         <nav aria-label="Workspace"><a className="nav-active" href="/">Verification requests <span>↗</span></a><a href="/unlinkability">How privacy works <span>↗</span></a></nav>
         <div className="sidebar-note"><span className="seal small" aria-hidden="true">✓</span><h3>Just what you need.</h3><p>One eligibility answer. No statements, balances, or private income amounts.</p></div>
-        <p className="sidebar-footer">Need-to-Know<br/>Built for privacy. Designed for people.</p>
+        <p className="sidebar-footer">Janus<br/>Built for privacy. Designed for people.</p>
       </aside>
       <main className="dashboard">
         <header className="page-head"><div><p className="kicker">Your rental workspace</p><h1>Verification requests</h1><p className="sub">A little certainty. A lot less paperwork.</p></div><a className="button" href="#new-request">＋ New request</a></header>
@@ -174,7 +174,7 @@ export default function Home() {
             {share && <section className="card current" aria-labelledby="share-title"><p className="kicker">Request ready</p><h2 id="share-title">Let the tenant take it from here.</h2><p className="hint gap-sm">{deliveryNote}</p><div className="actions"><a className="button" href={share.link} target="_blank" rel="noreferrer">Open tenant consent ↗</a><button type="button" className="secondary" onClick={copyLink}>{copied ? "Copied ✓" : "Copy link"}</button></div>{copyError && <p className="banner bad" role="alert">{copyError}</p>}<label className="field-last">Tenant link<input readOnly value={share.link} onFocus={(e) => e.currentTarget.select()} /></label></section>}
           </div>
         </div>
-        <footer className="page-footer">Need-to-Know · A signed answer, without the paperwork.</footer>
+        <footer className="page-footer">Janus · A signed answer, without the paperwork.</footer>
       </main>
     </div>
   );

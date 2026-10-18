@@ -33,7 +33,7 @@ export default async function RequestPage({
       <main>
         <h1>Can&apos;t reach the landlord</h1>
         <p className="sub">The portal that sent this link is not responding. Ask them to send it again once their portal is open.</p>
-        <p><a href="/">Back to Need-to-Know</a></p>
+        <p><a href="/">Back to Janus</a></p>
       </main>
     );
   }
@@ -42,7 +42,7 @@ export default async function RequestPage({
       <main>
         <h1>This link doesn&apos;t match an open request</h1>
         <p className="sub">It may be mistyped, or the request was never created. Ask the landlord for a new link.</p>
-        <p><a href="/">Back to Need-to-Know</a></p>
+        <p><a href="/">Back to Janus</a></p>
       </main>
     );
   }
@@ -51,7 +51,7 @@ export default async function RequestPage({
       <main>
         <h1>This request didn&apos;t load</h1>
         <p className="sub">The landlord portal returned an error. Refresh this page, or ask them to send a new link.</p>
-        <p><a href="/">Back to Need-to-Know</a></p>
+        <p><a href="/">Back to Janus</a></p>
       </main>
     );
   }

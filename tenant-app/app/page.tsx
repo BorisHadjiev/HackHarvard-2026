@@ -3,7 +3,7 @@ export default function Home() {
     <main>
       <h1>Answer one question</h1>
       <p className="sub">
-        Open the link from your landlord. Need-to-Know checks the answer on this device and can send back only a signed yes or no.
+        Open the link from your landlord. Janus checks the answer on this device and can send back only a signed yes or no.
       </p>
       <section className="card">
         <h2>Nothing is shared until you approve</h2>

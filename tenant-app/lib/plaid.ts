@@ -42,7 +42,7 @@ async function plaidPost<T>(path: string, body: Record<string, unknown>, fetchIm
 /** Step 1: a short-lived token that opens Plaid Link in the tenant's browser. */
 export async function createLinkToken(fetchImpl?: Fetch): Promise<string> {
   const json = await plaidPost<{ link_token: string }>("/link/token/create", {
-    client_name: "Need-to-Know",
+    client_name: "Janus",
     user: { client_user_id: randomUUID() }, // random per session: Plaid never learns who the tenant is to us
     products: ["transactions"],
     transactions: { days_requested: 90 },

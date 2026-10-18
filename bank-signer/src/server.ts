@@ -38,7 +38,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(status, { "content-type": "application/json" });
     res.end(JSON.stringify(body));
   };
-  if (req.method === "GET" && req.url === "/") return json(200, { ok: true, service: "need-to-know bank signer (demo stand-in)" });
+  if (req.method === "GET" && req.url === "/") return json(200, { ok: true, service: "Janus bank signer (demo stand-in)" });
   if (req.method !== "POST" || req.url !== "/attest") return json(404, { error: "not found" });
   let body: { account?: string; salt?: string; asOfDay?: number } = {};
   try {

@@ -1,6 +1,6 @@
-# Need-to-Know interface prototype
+# Janus interface prototype
 
-Open `need-to-know-app.html` in a browser. It is self-contained and requires no server or dependencies.
+Open `janus-app.html` in a browser. It is self-contained and requires no server or dependencies.
 
 This OpenDesign Cloud prototype demonstrates the landlord request → tenant consent → eligibility result journey. Use the Landlord/Tenant switch to try both views. Request creation, status filters, approval, declining, and demo reset use local browser state.
 

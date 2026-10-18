@@ -1,5 +1,5 @@
 {
-  "name": "need-to-know",
+  "name": "janus",
   "private": true,
   "type": "module",
   "description": "Prove one fact (income >= 3x rent, age >= 18) without handing over your documents. HackHarvard 2026.",
