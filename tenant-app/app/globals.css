@@ -146,7 +146,7 @@ ul.plain li { margin: 4px 0; }
   button, a.button { width: 100%; }
 }
 
-/* Need-to-Know product design, adapted from the approved OpenDesign prototype. */
+/* Janus product design, adapted from the approved OpenDesign prototype. */
 :root {
   --ink:#243330;
   --muted:#64716c;

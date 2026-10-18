@@ -37,7 +37,7 @@ const files: [string, Uint8Array | Promise<Uint8Array>, string][] = [
   ["leo-pay-stub-EDITED-careful.pdf", rowsToPdf(payStubRows(d.leoCareful)), "Careful edit: adds up, but this net pay never reached Leo's bank; not used when confirming with the bank."],
 ];
 for (const id of await ageSpecimens()) files.push([id.name, id.data, id.note]);
-const readme = ["Need-to-Know demo documents (SAMPLE data, fictional employers and bank).", `Generated ${new Date().toISOString()} to match today's demo bank data. Re-run \`npm run sample-docs\` on demo day.`, ""];
+const readme = ["Janus demo documents (SAMPLE data, fictional employers and bank).", `Generated ${new Date().toISOString()} to match today's demo bank data. Re-run \`npm run sample-docs\` on demo day.`, ""];
 for (const [name, data, note] of files) {
   writeFileSync(path.join(out, name), await data);
   readme.push(`${name}: ${note}`);

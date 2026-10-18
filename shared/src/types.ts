@@ -1,4 +1,4 @@
-// Shared types for Need-to-Know. Owner: Sam. Announce changes in the group chat:
+// Shared types for Janus. Owner: Sam. Announce changes in the group chat:
 // both apps import from here.
 
 /** What a landlord can ask for. */

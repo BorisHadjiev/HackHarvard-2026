@@ -3,7 +3,7 @@
 (Codex reads this file directly. Claude reads it via CLAUDE.md. Cursor reads it via .cursor/rules.)
 
 ## Product
-Need-to-Know lets a tenant prove one fact ("income ≥ 3× rent") to a landlord without sharing documents.
+Janus lets a tenant prove one fact ("income ≥ 3× rent") to a landlord without sharing documents.
 The tenant app runs on the tenant's own machine, reads bank deposits (Capital One Nessie), computes the
 answer locally and sends only a signed yes/no. Hackathon: HackHarvard 2026, submission due 8 AM Sun Oct 18.
 

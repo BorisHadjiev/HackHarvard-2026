@@ -1,4 +1,4 @@
-// Need-to-Know income proof. Owner: Sam.
+// Janus income proof. Owner: Sam.
 //
 // Proves "median monthly recurring income >= multiple x rent" over a list of bank deposits
 // WITHOUT revealing the deposits. The deposits are private inputs; the proof is tied to

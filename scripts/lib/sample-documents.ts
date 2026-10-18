@@ -200,7 +200,7 @@ export function makeTestIssuer(name = "Acme Corp Payroll (SAMPLE issuer)"): Test
   cert.serialNumber = "01" + Date.now().toString(16);
   cert.validity.notBefore = new Date(Date.now() - 86_400_000);
   cert.validity.notAfter = new Date(Date.now() + 5 * 365 * 86_400_000);
-  const attrs = [{ name: "commonName", value: name }, { name: "organizationName", value: "Need-to-Know test data" }];
+  const attrs = [{ name: "commonName", value: name }, { name: "organizationName", value: "Janus test data" }];
   cert.setSubject(attrs);
   cert.setIssuer(attrs);
   const key = forge.pki.privateKeyFromPem(privateKey);
