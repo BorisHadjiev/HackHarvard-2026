@@ -4,7 +4,7 @@
 
 Janus answers a narrow question—“Is income at least 3× rent?” or “Are you at least 18?”—without sending bank statements or ID images to the requester. Built for HackHarvard 2026 with Capital One Nessie and Photon messaging.
 
-[CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) · [Demo portal](https://need-to-know.onrender.com/) · [Threat model](docs/threat-model.md) · [Measured document accuracy](docs/document-accuracy.md)
+[CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) · [Demo portal](https://janus-hackharvard.onrender.com/) · [Threat model](docs/threat-model.md) · [Measured document accuracy](docs/document-accuracy.md)
 
 ## What works
 
@@ -89,4 +89,4 @@ Document accuracy generates a labeled synthetic income corpus and reports age ou
 
 Read [AGENTS.md](AGENTS.md) before contributing. Preserve the claim's minimum-disclosure contract, coordinate changes to shared types with Sam, and keep tests, builds and smoke green. The public deployment may lag repository changes; local validation is not evidence that a release has deployed.
 
-The product is branded Janus. The existing Render address and cryptographic issuer/workspace identifiers remain stable for deployment and signed-claim compatibility.
+The product is branded Janus. The public demo runs at https://janus-hackharvard.onrender.com/. Cryptographic issuer/workspace identifiers remain stable for signed-claim compatibility.
