@@ -6,6 +6,26 @@ Janus answers a narrow question—“Is income at least 3× rent?” or “Are y
 
 [CI](https://github.com/BorisHadjiev/HackHarvard-2026/actions/workflows/ci.yml) · [Demo portal](https://janus-hackharvard.onrender.com/) · [Threat model](docs/threat-model.md) · [Measured document accuracy](docs/document-accuracy.md)
 
+![Janus: Proof, not paperwork](docs/assets/janus-devpost.png)
+
+*Illustrative product mockups. The live demo supports income verification and age 18+ checks.*
+
+## HackHarvard tracks and sponsor integrations
+
+- **Digital Trust: Fintech and Cybersecurity:** Janus reduces disclosure in income and age verification. A requester gets a signed eligibility answer, evidence strength and, for bank-backed income, a zero-knowledge proof instead of copies of sensitive documents.
+- **Capital One — Best Use of Nessie:** the tenant service fetches demo bank deposits through Nessie and evaluates recurring income against the request's rent requirement. The demo distinguishes payroll from a one-time transfer.
+- **Photon — Build a Messaging Agent with Photon 2.0:** Janus delivers the verification request through messaging and handles tenant replies. The demonstrated channel is iMessage.
+
+These are the relevant categories on the [HackHarvard 2026 Devpost prize list](https://hackharvard2026.devpost.com/#prizes). Selecting a category on Devpost is separate from listing it here.
+
+### Where Nessie is used
+
+[`scripts/seed-nessie.ts`](scripts/seed-nessie.ts) creates the demo customers, accounts and deposits. [`tenant-app/lib/nessie.ts`](tenant-app/lib/nessie.ts) reads `GET /accounts/{id}/deposits`, and [`tenant-app/lib/income.ts`](tenant-app/lib/income.ts) evaluates recurring payers over the income window. Maya meets the example requirement. Leo's one-time $6,000 transfer does not turn his recurring income into a pass. Nessie is sandbox data, not access to a user's real Capital One account. The separate [bank signer](bank-signer/) supplies the demo attestation used by the income proof.
+
+### Where Photon is used
+
+[`messaging/src/photon.ts`](messaging/src/photon.ts) connects the tenant's messaging identity and sends the request through the Photon beta API or the Spectrum iMessage client, depending on the configured project. [`messaging/src/deliver.ts`](messaging/src/deliver.ts) sends the question and private consent link. The [inbound webhook](landlord-portal/app/api/photon/inbound/route.ts) and [`landlord-portal/lib/text-reply.ts`](landlord-portal/lib/text-reply.ts) handle YES/NO replies for the demo income flow. Age verification still requires opening the link, providing an ID and approving the disclosure. See [messaging setup](messaging/README.md) for credentials, channels and reply handling.
+
 ## What works
 
 A requester creates a question and shares the consent link, optionally by Photon text. The tenant service reads bank data or uploaded documents, computes the answer, and signs it with Ed25519. The portal checks the signature, audience, question, expiry, one-time nonce and configured build trust before displaying the answer and evidence level. Requests and used nonces persist across restarts.
@@ -15,6 +35,10 @@ Income can come from demo deposits, Capital One Nessie, Plaid sandbox, or PDF/ph
 Age checks read a license PDF417/AAMVA barcode, a passport/ID machine-readable zone with check digits, or front-of-card DOB text. A usable adult ID returns yes; a usable minor ID returns no; unreadable, expired or failed IDs are declined. Birth dates and exact ages stay out of the public report and claim.
 
 The current product serves landlord/tenant requests. The same minimum-disclosure approach could support age gates for communities such as Discord or hotel check-in, reducing the copies of identity documents those services retain. Those integrations and production identity assurance are future work.
+
+## Live demo
+
+Open **[janus-hackharvard.onrender.com](https://janus-hackharvard.onrender.com/)** and create an income or Age 18+ request. The portal runs on Render. The current tenant service and demo bank signer run on the demo laptop, with a temporary tunnel for consent links, so that laptop and tunnel must stay running for approvals. A sleeping free Render instance may take time to start.
 
 ## Run locally
 
@@ -76,6 +100,13 @@ npm run doc-accuracy
 Smoke covers income yes/no, forged tokens, replay protection, an adult specimen through the full age flow, and replay of its exact signed claim. It skips age cleanly in checkouts without the ID reader. For alternate ports, set `PORTAL` and `TENANT` when invoking smoke.
 
 Document accuracy generates a labeled synthetic income corpus and reports age outcomes separately for the seven specimens. A correct outcome is yes, no or decline as appropriate. CI compares income metrics with `main` on the same runner to account for platform-dependent OCR fonts, and requires every age outcome to match. Synthetic layouts do not establish accuracy on arbitrary real-world statements or IDs, nor do they demonstrate fraud resistance. `npm run doc-accuracy -- --people 30` expands the income corpus.
+
+## Next steps
+
+- Replace the stand-in bank signer with authenticated credentials issued by real banks.
+- Use issuer-signed mobile driver's licenses for stronger age assurance and selective disclosure.
+- Add organization policies, team access, bulk requests and integrations with existing platforms.
+- Extend the question types to student status, residency and employment.
 
 ## Repository
 
